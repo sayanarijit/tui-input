@@ -10,7 +10,7 @@ use crossterm::{
 };
 use std::io::Write;
 
-/// Converts crosstern event into input requests.
+/// Converts crossterm event into input requests.
 pub fn to_input_request(evt: CrosstermEvent) -> Option<InputRequest> {
     use InputRequest::*;
     use KeyCode::*;
@@ -48,8 +48,7 @@ pub fn write<W: Write>(
     (x, y): (u16, u16),
     width: u16,
 ) -> Result<()> {
-    queue!(stdout, MoveTo(x, y))?;
-    queue!(stdout, SetAttribute(CAttribute::NoReverse))?;
+    queue!(stdout, MoveTo(x, y), SetAttribute(CAttribute::NoReverse))?;
 
     let val_width = width.max(1) as usize - 1;
     let len = value.chars().count();
