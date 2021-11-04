@@ -1,7 +1,7 @@
 # tui-input
 
 [![Crate Status](https://img.shields.io/crates/v/tui-input.svg)](https://crates.io/crates/tui-input)
-[![Docs Status](https://docs.rs/tui-input/badge.svg)](https://docs.rs/crate/tui-input/)
+[![Docs Status](https://docs.rs/tui-input/badge.svg)](https://docs.rs/tui-input/)
 
 [![tui-input.gif](https://s10.gifyu.com/images/tui-input.gif)](https://github.com/sayanarijit/tui-input/blob/main/examples/tui-rs-input/src/main.rs)
 
