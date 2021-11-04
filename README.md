@@ -1,6 +1,6 @@
 # tui-input
 
-[![tui-input.gif](https://s10.gifyu.com/images/tui-input.gif)](https://gifyu.com/image/e54N)
+[![tui-input.gif](https://s10.gifyu.com/images/tui-input.gif)](https://github.com/sayanarijit/tui-input/tree/main/examples/tui-rs-input)
 
 > **WARNING:** Most of the functionality is only human tested.
 
@@ -10,7 +10,7 @@ This crate can be used with [tui-rs](https://github.com/fdehau/tui-rs).
 
 ## Demo
 
-See [examples](examples/).
+See [examples](https://github.com/sayanarijit/tui-input/tree/main/examples).
 
 ## (Not yet) used in
 
