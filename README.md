@@ -1,6 +1,6 @@
 # tui-input
 
-| **WARNING:** Only human tested so far.
+| **WARNING:** Most of the API is only human tested.
 
 A TUI input library supporting multiple backends.
 
