@@ -8,6 +8,18 @@ A TUI input library supporting multiple backends.
 
 This crate can be used with [tui-rs](https://github.com/fdehau/tui-rs).
 
+## Install
+
+Cargo.toml
+
+```toml
+# crossterm
+tui-input = "*"
+
+# termion
+tui-input = { version = "*", features = ["termion"], default-features = false }
+```
+
 ## Demo
 
 See [examples](https://github.com/sayanarijit/tui-input/tree/main/examples).
@@ -19,6 +31,6 @@ See [examples](https://github.com/sayanarijit/tui-input/tree/main/examples).
 ## TODO
 
 - [x] [crossterm](https://github.com/crossterm-rs/crossterm) backend
-- [ ] [termion](https://github.com/ticki/termion) backend
+- [x] [termion](https://github.com/ticki/termion) backend
 - [ ] [rustbox](https://github.com/gchp/rustbox) backend
 - [ ] [pancurses](https://github.com/ihalila/pancurses) backend
