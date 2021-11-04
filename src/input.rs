@@ -4,6 +4,7 @@
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum InputRequest {
+    SetCursor(usize),
     InsertChar(char),
     GoToPrevChar,
     GoToNextChar,
@@ -49,7 +50,7 @@ pub enum InputResponse {
 /// use tui_input::Input;
 ///
 /// let value = "Hello World".to_string();
-/// let input = Input::default().with_cursor(value.chars().count()).with_value(value);
+/// let input = Input::default().with_value(value);
 ///
 /// assert_eq!(input.value(), "Hello World");
 /// assert_eq!(input.cursor(), 11);
@@ -62,15 +63,18 @@ pub struct Input {
 }
 
 impl Input {
-    /// Set the value manually. You may also want to set the cursor.
+    /// Set the value manually.
+    /// Cursor will be set to the given value's length.
     pub fn with_value(mut self, value: String) -> Self {
+        self.cursor = value.chars().count();
         self.value = value;
         self
     }
 
     /// Set the cursor manually.
+    /// If the input is larger than the value length, it'll be auto adjusted.
     pub fn with_cursor(mut self, cursor: usize) -> Self {
-        self.cursor = cursor;
+        self.cursor = cursor.min(self.value.chars().count());
         self
     }
 
@@ -78,6 +82,18 @@ impl Input {
     pub fn handle(&mut self, req: InputRequest) -> Option<InputResponse> {
         use InputRequest::*;
         match req {
+            SetCursor(pos) => {
+                let pos = pos.min(self.value.chars().count());
+                if self.cursor == pos {
+                    None
+                } else {
+                    self.cursor = pos;
+                    Some(InputResponse::StateChanged(StateChanged {
+                        value: false,
+                        cursor: true,
+                    }))
+                }
+            }
             InsertChar(c) => {
                 if self.cursor == self.value.chars().count() {
                     self.value.push(c);
@@ -297,10 +313,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_insert_char() {
-        let mut input = Input::default()
-            .with_value(TEXT.into())
-            .with_cursor(TEXT.chars().count());
+    fn set_cursor() {
+        let mut input = Input::default().with_value(TEXT.into());
+
+        let req = InputRequest::SetCursor(3);
+        let resp = input.handle(req);
+
+        assert_eq!(
+            resp,
+            Some(InputResponse::StateChanged(StateChanged {
+                value: false,
+                cursor: true
+            }))
+        );
+
+        assert_eq!(input.value(), "first second, third.");
+        assert_eq!(input.cursor(), 3);
+
+        let req = InputRequest::SetCursor(30);
+        let resp = input.handle(req);
+
+        assert_eq!(input.cursor(), TEXT.chars().count());
+        assert_eq!(
+            resp,
+            Some(InputResponse::StateChanged(StateChanged {
+                value: false,
+                cursor: true
+            }))
+        );
+
+        let req = InputRequest::SetCursor(TEXT.chars().count());
+        let resp = input.handle(req);
+
+        assert_eq!(input.cursor(), TEXT.chars().count());
+        assert_eq!(resp, None);
+    }
+
+    #[test]
+    fn insert_char() {
+        let mut input = Input::default().with_value(TEXT.into());
 
         let req = InputRequest::InsertChar('x');
         let resp = input.handle(req);
@@ -330,10 +381,8 @@ mod tests {
     }
 
     #[test]
-    fn it_go_to_prev_char() {
-        let mut input = Input::default()
-            .with_value(TEXT.into())
-            .with_cursor(TEXT.chars().count());
+    fn go_to_prev_char() {
+        let mut input = Input::default().with_value(TEXT.into());
 
         let req = InputRequest::GoToPrevChar;
         let resp = input.handle(req);

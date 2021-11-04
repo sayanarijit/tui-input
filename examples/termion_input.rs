@@ -12,7 +12,7 @@ fn main() -> Result<()> {
     let mut stdout = AlternateScreen::from(stdout);
 
     let value = "Hello ".to_string();
-    let mut input = Input::default().with_cursor(value.len()).with_value(value);
+    let mut input = Input::default().with_value(value);
     write!(&mut stdout, "{}", Hide)?;
     backend::write(&mut stdout, input.value(), input.cursor(), (0, 0), 15)?;
     stdout.flush()?;
