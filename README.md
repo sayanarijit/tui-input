@@ -1,6 +1,6 @@
 # tui-input
 
-[![tui-input.gif](https://s10.gifyu.com/images/tui-input.gif)](https://github.com/sayanarijit/tui-input/tree/main/examples/tui-rs-input)
+[![tui-input.gif](https://s10.gifyu.com/images/tui-input.gif)](https://github.com/sayanarijit/tui-input/blob/main/examples/tui-rs-input/src/main.rs)
 
 > **WARNING:** Most of the functionality is only human tested.
 
