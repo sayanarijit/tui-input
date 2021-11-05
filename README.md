@@ -23,6 +23,12 @@ tui-input = "*"
 tui-input = { version = "*", features = ["termion"], default-features = false }
 ```
 
+## Features
+
+- crossterm (default)
+- termion
+- serde
+
 ## Demo
 
 See [examples](https://github.com/sayanarijit/tui-input/tree/main/examples).
