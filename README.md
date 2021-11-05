@@ -33,7 +33,7 @@ tui-input = { version = "*", features = ["termion"], default-features = false }
 
 See [examples](https://github.com/sayanarijit/tui-input/tree/main/examples).
 
-## (Not yet) used in
+## Used in
 
 - [xplr](https://github.com/sayanarijit/xplr)
 
