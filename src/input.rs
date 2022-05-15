@@ -98,7 +98,15 @@ impl Input {
                 if self.cursor == self.value.chars().count() {
                     self.value.push(c);
                 } else {
-                    self.value.insert(self.cursor, c);
+                    self.value = self
+                        .value
+                        .chars()
+                        .take(self.cursor)
+                        .chain(
+                            std::iter::once(c)
+                                .chain(self.value.chars().skip(self.cursor)),
+                        )
+                        .collect();
                 }
                 self.cursor += 1;
                 Some(InputResponse::StateChanged(StateChanged {
@@ -454,5 +462,42 @@ mod tests {
 
         assert_eq!(input.value(), "test");
         assert_eq!(input.cursor(), 0);
+    }
+
+    #[test]
+    fn insert_unicode_chars() {
+        let mut input =
+            Input::default().with_value("¡test¡".into()).with_cursor(5);
+
+        let req = InputRequest::InsertChar('☆');
+        let resp = input.handle(req);
+
+        assert_eq!(
+            resp,
+            Some(InputResponse::StateChanged(StateChanged {
+                value: true,
+                cursor: true,
+            }))
+        );
+
+        assert_eq!(input.value(), "¡test☆¡");
+        assert_eq!(input.cursor(), 6);
+
+        input.handle(InputRequest::GoToStart);
+        input.handle(InputRequest::GoToNextChar);
+
+        let req = InputRequest::InsertChar('☆');
+        let resp = input.handle(req);
+
+        assert_eq!(
+            resp,
+            Some(InputResponse::StateChanged(StateChanged {
+                value: true,
+                cursor: true,
+            }))
+        );
+
+        assert_eq!(input.value(), "¡☆test☆¡");
+        assert_eq!(input.cursor(), 2);
     }
 }
