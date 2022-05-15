@@ -112,7 +112,14 @@ impl Input {
                     None
                 } else {
                     self.cursor -= 1;
-                    self.value.remove(self.cursor);
+                    self.value = self
+                        .value
+                        .chars()
+                        .enumerate()
+                        .filter(|(i, _)| i != &self.cursor)
+                        .map(|(_, c)| c)
+                        .collect();
+
                     Some(InputResponse::StateChanged(StateChanged {
                         value: true,
                         cursor: true,
@@ -124,7 +131,13 @@ impl Input {
                 if self.cursor == self.value.chars().count() {
                     None
                 } else {
-                    self.value.remove(self.cursor);
+                    self.value = self
+                        .value
+                        .chars()
+                        .enumerate()
+                        .filter(|(i, _)| i != &self.cursor)
+                        .map(|(_, c)| c)
+                        .collect();
                     Some(InputResponse::StateChanged(StateChanged {
                         value: true,
                         cursor: false,
@@ -408,5 +421,38 @@ mod tests {
         assert_eq!(input.cursor(), 1);
     }
 
-    // TODO: test remaining
+    #[test]
+    fn remove_unicode_chars() {
+        let mut input = Input::default().with_value("¡test¡".into());
+
+        let req = InputRequest::DeletePrevChar;
+        let resp = input.handle(req);
+
+        assert_eq!(
+            resp,
+            Some(InputResponse::StateChanged(StateChanged {
+                value: true,
+                cursor: true,
+            }))
+        );
+
+        assert_eq!(input.value(), "¡test");
+        assert_eq!(input.cursor(), 5);
+
+        input.handle(InputRequest::GoToStart);
+
+        let req = InputRequest::DeleteNextChar;
+        let resp = input.handle(req);
+
+        assert_eq!(
+            resp,
+            Some(InputResponse::StateChanged(StateChanged {
+                value: true,
+                cursor: false,
+            }))
+        );
+
+        assert_eq!(input.value(), "test");
+        assert_eq!(input.cursor(), 0);
+    }
 }
