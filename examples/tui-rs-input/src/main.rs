@@ -17,8 +17,7 @@ use tui::{
     Frame, Terminal,
 };
 use tui_input::backend::crossterm as input_backend;
-use tui_input::{Input, InputResponse, StateChanged};
-use unicode_width::UnicodeWidthStr;
+use tui_input::Input;
 
 enum InputMode {
     Normal,
@@ -91,23 +90,20 @@ fn run_app<B: Backend>(
                     }
                     _ => {}
                 },
-                InputMode::Editing => {
-                    let resp = input_backend::to_input_request(Event::Key(key))
-                        .and_then(|req| app.input.handle(req));
-
-                    match resp {
-                        Some(InputResponse::StateChanged(_)) => {}
-                        Some(InputResponse::Submitted) => {
-                            app.messages.push(app.input.value().into());
-                            app.input = Input::default();
-                        }
-
-                        Some(InputResponse::Escaped) => {
-                            app.input_mode = InputMode::Normal;
-                        }
-                        None => {}
+                InputMode::Editing => match key.code {
+                    KeyCode::Enter => {
+                        app.messages.push(app.input.value().into());
+                        app.input = Input::default();
                     }
-                }
+                    KeyCode::Esc => {
+                        app.input_mode = InputMode::Normal;
+                    }
+
+                    _ => {
+                        input_backend::to_input_request(Event::Key(key))
+                            .map(|req| app.input.handle(req));
+                    }
+                },
             }
         }
     }

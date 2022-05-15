@@ -1,6 +1,8 @@
 use crossterm::{
     cursor::{Hide, Show},
-    event::{read, DisableMouseCapture, EnableMouseCapture},
+    event::{
+        read, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent,
+    },
     execute,
     terminal::{
         disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
@@ -25,24 +27,33 @@ fn main() -> Result<()> {
 
     loop {
         let event = read()?;
-        if let Some(resp) =
-            backend::to_input_request(event).and_then(|r| input.handle(r))
-        {
-            match resp {
-                InputResponse::Submitted | InputResponse::Escaped => {
+
+        match event {
+            Event::Key(KeyEvent { code, .. }) => match code {
+                KeyCode::Esc | KeyCode::Enter => {
                     break;
                 }
-                InputResponse::StateChanged(_) => {
-                    backend::write(
-                        &mut stdout,
-                        input.value(),
-                        input.cursor(),
-                        (0, 0),
-                        15,
-                    )?;
-                    stdout.flush()?;
+                _ => {
+                    if let Some(resp) = backend::to_input_request(event)
+                        .map(|r| input.handle(r))
+                    {
+                        match resp {
+                            InputResponse::Unchanged => {}
+                            InputResponse::StateChanged { .. } => {
+                                backend::write(
+                                    &mut stdout,
+                                    input.value(),
+                                    input.cursor(),
+                                    (0, 0),
+                                    15,
+                                )?;
+                                stdout.flush()?;
+                            }
+                        }
+                    }
                 }
-            }
+            },
+            _ => {}
         }
     }
 
