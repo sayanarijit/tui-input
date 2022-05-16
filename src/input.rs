@@ -19,17 +19,14 @@ pub enum InputRequest {
     DeleteLine,
 }
 
-/// Input response is emitted to notify about state changes and other events.
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum InputResponse {
-    /// The value or cursor or both changed.
-    StateChanged {
-        value: bool,
-        cursor: bool,
-    },
-    Unchanged,
+pub struct StateChanged {
+    pub value: bool,
+    pub cursor: bool,
 }
+
+pub type InputResponse = Option<StateChanged>;
 
 /// The input buffer with cursor support.
 ///
@@ -74,13 +71,13 @@ impl Input {
             SetCursor(pos) => {
                 let pos = pos.min(self.value.chars().count());
                 if self.cursor == pos {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor = pos;
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: false,
                         cursor: true,
-                    }
+                    })
                 }
             }
             InsertChar(c) => {
@@ -98,15 +95,15 @@ impl Input {
                         .collect();
                 }
                 self.cursor += 1;
-                InputResponse::StateChanged {
+                InputResponse::Some(StateChanged {
                     value: true,
                     cursor: true,
-                }
+                })
             }
 
             DeletePrevChar => {
                 if self.cursor == 0 {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor -= 1;
                     self.value = self
@@ -117,16 +114,16 @@ impl Input {
                         .map(|(_, c)| c)
                         .collect();
 
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: true,
                         cursor: true,
-                    }
+                    })
                 }
             }
 
             DeleteNextChar => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.value = self
                         .value
@@ -135,28 +132,28 @@ impl Input {
                         .filter(|(i, _)| i != &self.cursor)
                         .map(|(_, c)| c)
                         .collect();
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: true,
                         cursor: false,
-                    }
+                    })
                 }
             }
 
             GoToPrevChar => {
                 if self.cursor == 0 {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor -= 1;
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: false,
                         cursor: true,
-                    }
+                    })
                 }
             }
 
             GoToPrevWord => {
                 if self.cursor == 0 {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor = self
                         .value
@@ -169,28 +166,28 @@ impl Input {
                         .skip_while(|c| !c.is_alphanumeric())
                         .skip_while(|c| c.is_alphanumeric())
                         .count();
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: false,
                         cursor: true,
-                    }
+                    })
                 }
             }
 
             GoToNextChar => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor += 1;
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: false,
                         cursor: true,
-                    }
+                    })
                 }
             }
 
             GoToNextWord => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor = self
                         .value
@@ -202,30 +199,30 @@ impl Input {
                         .map(|(i, _)| i)
                         .unwrap_or_else(|| self.value.chars().count());
 
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: false,
                         cursor: true,
-                    }
+                    })
                 }
             }
 
             DeleteLine => {
                 if self.value.is_empty() {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     let cursor = self.cursor;
                     self.value = "".into();
                     self.cursor = 0;
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: true,
                         cursor: self.cursor == cursor,
-                    }
+                    })
                 }
             }
 
             DeletePrevWord => {
                 if self.cursor == 0 {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     let remaining = self.value.chars().skip(self.cursor);
                     let rev = self
@@ -243,16 +240,16 @@ impl Input {
                     self.value =
                         rev.into_iter().rev().chain(remaining).collect();
                     self.cursor = rev_len;
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: true,
                         cursor: true,
-                    }
+                    })
                 }
             }
 
             DeleteNextWord => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.value = self
                         .value
@@ -267,35 +264,35 @@ impl Input {
                         )
                         .collect();
 
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: true,
                         cursor: false,
-                    }
+                    })
                 }
             }
 
             GoToStart => {
                 if self.cursor == 0 {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor = 0;
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: false,
                         cursor: true,
-                    }
+                    })
                 }
             }
 
             GoToEnd => {
                 let count = self.value.chars().count();
                 if self.cursor == count {
-                    InputResponse::Unchanged
+                    InputResponse::None
                 } else {
                     self.cursor = count;
-                    InputResponse::StateChanged {
+                    InputResponse::Some(StateChanged {
                         value: false,
                         cursor: true,
-                    }
+                    })
                 }
             }
         }
@@ -317,7 +314,6 @@ mod tests {
 
     const TEXT: &str = "first second, third.";
 
-    use super::InputResponse::*;
     use super::*;
 
     #[test]
@@ -329,10 +325,10 @@ mod tests {
 
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: false,
                 cursor: true,
-            }
+            })
         );
 
         assert_eq!(input.value(), "first second, third.");
@@ -344,17 +340,17 @@ mod tests {
         assert_eq!(input.cursor(), TEXT.chars().count());
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: false,
                 cursor: true,
-            }
+            })
         );
 
         let req = InputRequest::SetCursor(TEXT.chars().count());
         let resp = input.handle(req);
 
         assert_eq!(input.cursor(), TEXT.chars().count());
-        assert_eq!(resp, Unchanged);
+        assert_eq!(resp, None);
     }
 
     #[test]
@@ -366,10 +362,10 @@ mod tests {
 
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: true,
                 cursor: true,
-            }
+            })
         );
 
         assert_eq!(input.value(), "first second, third.x");
@@ -397,10 +393,10 @@ mod tests {
 
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: false,
                 cursor: true,
-            }
+            })
         );
 
         assert_eq!(input.value(), "first second, third.");
@@ -425,10 +421,10 @@ mod tests {
 
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: true,
                 cursor: true,
-            }
+            })
         );
 
         assert_eq!(input.value(), "¡test");
@@ -441,10 +437,10 @@ mod tests {
 
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: true,
                 cursor: false,
-            }
+            })
         );
 
         assert_eq!(input.value(), "test");
@@ -461,10 +457,10 @@ mod tests {
 
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: true,
                 cursor: true,
-            }
+            })
         );
 
         assert_eq!(input.value(), "¡test☆¡");
@@ -478,10 +474,10 @@ mod tests {
 
         assert_eq!(
             resp,
-            StateChanged {
+            Some(StateChanged {
                 value: true,
                 cursor: true,
-            }
+            })
         );
 
         assert_eq!(input.value(), "¡☆test☆¡");

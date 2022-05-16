@@ -12,7 +12,7 @@ use crossterm::{
 };
 use std::io::{stdout, Write};
 use tui_input::backend::crossterm as backend;
-use tui_input::{Input, InputResponse};
+use tui_input::Input;
 
 fn main() -> Result<()> {
     enable_raw_mode()?;
@@ -34,22 +34,18 @@ fn main() -> Result<()> {
                     break;
                 }
                 _ => {
-                    if let Some(resp) = backend::to_input_request(event)
-                        .map(|r| input.handle(r))
+                    if backend::to_input_request(event)
+                        .and_then(|r| input.handle(r))
+                        .is_some()
                     {
-                        match resp {
-                            InputResponse::Unchanged => {}
-                            InputResponse::StateChanged { .. } => {
-                                backend::write(
-                                    &mut stdout,
-                                    input.value(),
-                                    input.cursor(),
-                                    (0, 0),
-                                    15,
-                                )?;
-                                stdout.flush()?;
-                            }
-                        }
+                        backend::write(
+                            &mut stdout,
+                            input.value(),
+                            input.cursor(),
+                            (0, 0),
+                            15,
+                        )?;
+                        stdout.flush()?;
                     }
                 }
             },

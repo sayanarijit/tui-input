@@ -3,13 +3,13 @@
 //! # Example: Without any backend
 //!
 //! ```
-//! use tui_input::{Input, InputRequest, InputResponse};
+//! use tui_input::{Input, InputRequest, StateChanged};
 //!
 //! let req = InputRequest::InsertChar('x');
 //! let mut input = Input::default();
 //! let resp = input.handle(req);
 //!
-//! assert_eq!(resp, InputResponse::StateChanged { value: true, cursor: true });
+//! assert_eq!(resp, Some(StateChanged { value: true, cursor: true }));
 //! assert_eq!(input.value(), "x");
 //! assert_eq!(input.cursor(), 1);
 //! ```
@@ -19,4 +19,4 @@
 mod input;
 
 pub mod backend;
-pub use input::{Input, InputRequest, InputResponse};
+pub use input::{Input, InputRequest, InputResponse, StateChanged};
