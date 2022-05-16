@@ -71,10 +71,10 @@ impl Input {
             SetCursor(pos) => {
                 let pos = pos.min(self.value.chars().count());
                 if self.cursor == pos {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor = pos;
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: false,
                         cursor: true,
                     })
@@ -95,7 +95,7 @@ impl Input {
                         .collect();
                 }
                 self.cursor += 1;
-                InputResponse::Some(StateChanged {
+                Some(StateChanged {
                     value: true,
                     cursor: true,
                 })
@@ -103,7 +103,7 @@ impl Input {
 
             DeletePrevChar => {
                 if self.cursor == 0 {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor -= 1;
                     self.value = self
@@ -114,7 +114,7 @@ impl Input {
                         .map(|(_, c)| c)
                         .collect();
 
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: true,
                         cursor: true,
                     })
@@ -123,7 +123,7 @@ impl Input {
 
             DeleteNextChar => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::None
+                    None
                 } else {
                     self.value = self
                         .value
@@ -132,7 +132,7 @@ impl Input {
                         .filter(|(i, _)| i != &self.cursor)
                         .map(|(_, c)| c)
                         .collect();
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: true,
                         cursor: false,
                     })
@@ -141,10 +141,10 @@ impl Input {
 
             GoToPrevChar => {
                 if self.cursor == 0 {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor -= 1;
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: false,
                         cursor: true,
                     })
@@ -153,7 +153,7 @@ impl Input {
 
             GoToPrevWord => {
                 if self.cursor == 0 {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor = self
                         .value
@@ -166,7 +166,7 @@ impl Input {
                         .skip_while(|c| !c.is_alphanumeric())
                         .skip_while(|c| c.is_alphanumeric())
                         .count();
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: false,
                         cursor: true,
                     })
@@ -175,10 +175,10 @@ impl Input {
 
             GoToNextChar => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor += 1;
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: false,
                         cursor: true,
                     })
@@ -187,7 +187,7 @@ impl Input {
 
             GoToNextWord => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor = self
                         .value
@@ -199,7 +199,7 @@ impl Input {
                         .map(|(i, _)| i)
                         .unwrap_or_else(|| self.value.chars().count());
 
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: false,
                         cursor: true,
                     })
@@ -208,12 +208,12 @@ impl Input {
 
             DeleteLine => {
                 if self.value.is_empty() {
-                    InputResponse::None
+                    None
                 } else {
                     let cursor = self.cursor;
                     self.value = "".into();
                     self.cursor = 0;
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: true,
                         cursor: self.cursor == cursor,
                     })
@@ -222,7 +222,7 @@ impl Input {
 
             DeletePrevWord => {
                 if self.cursor == 0 {
-                    InputResponse::None
+                    None
                 } else {
                     let remaining = self.value.chars().skip(self.cursor);
                     let rev = self
@@ -240,7 +240,7 @@ impl Input {
                     self.value =
                         rev.into_iter().rev().chain(remaining).collect();
                     self.cursor = rev_len;
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: true,
                         cursor: true,
                     })
@@ -249,7 +249,7 @@ impl Input {
 
             DeleteNextWord => {
                 if self.cursor == self.value.chars().count() {
-                    InputResponse::None
+                    None
                 } else {
                     self.value = self
                         .value
@@ -264,7 +264,7 @@ impl Input {
                         )
                         .collect();
 
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: true,
                         cursor: false,
                     })
@@ -273,10 +273,10 @@ impl Input {
 
             GoToStart => {
                 if self.cursor == 0 {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor = 0;
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: false,
                         cursor: true,
                     })
@@ -286,10 +286,10 @@ impl Input {
             GoToEnd => {
                 let count = self.value.chars().count();
                 if self.cursor == count {
-                    InputResponse::None
+                    None
                 } else {
                     self.cursor = count;
-                    InputResponse::Some(StateChanged {
+                    Some(StateChanged {
                         value: false,
                         cursor: true,
                     })
