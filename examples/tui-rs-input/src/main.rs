@@ -98,10 +98,9 @@ fn run_app<B: Backend>(
                     KeyCode::Esc => {
                         app.input_mode = InputMode::Normal;
                     }
-
                     _ => {
                         input_backend::to_input_request(Event::Key(key))
-                            .map(|req| app.input.handle(req));
+                            .and_then(|req| app.input.handle(req));
                     }
                 },
             }

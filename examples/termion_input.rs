@@ -5,7 +5,7 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 use tui_input::backend::termion as backend;
-use tui_input::{Input, InputResponse};
+use tui_input::Input;
 
 fn main() -> Result<()> {
     let mut value = "Hello ".to_string();
@@ -26,22 +26,18 @@ fn main() -> Result<()> {
                 break;
             }
 
-            if let Some(resp) =
-                backend::to_input_request(&evt).map(|req| input.handle(req))
+            if backend::to_input_request(&evt)
+                .and_then(|req| input.handle(req))
+                .is_some()
             {
-                match resp {
-                    InputResponse::StateChanged { .. } => {
-                        backend::write(
-                            &mut stdout,
-                            input.value(),
-                            input.cursor(),
-                            (0, 0),
-                            15,
-                        )?;
-                        stdout.flush()?;
-                    }
-                    _ => {}
-                }
+                backend::write(
+                    &mut stdout,
+                    input.value(),
+                    input.cursor(),
+                    (0, 0),
+                    15,
+                )?;
+                stdout.flush()?;
             }
         }
 
