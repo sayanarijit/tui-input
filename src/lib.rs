@@ -5,16 +5,17 @@
 //! ```
 //! use tui_input::{Input, InputRequest, StateChanged};
 //!
-//! let req = InputRequest::InsertChar('x');
-//! let mut input = Input::default();
+//! let mut input: Input = "Hello Worl".into();
+//!
+//! let req = InputRequest::InsertChar('d');
 //! let resp = input.handle(req);
 //!
 //! assert_eq!(resp, Some(StateChanged { value: true, cursor: true }));
-//! assert_eq!(input.value(), "x");
-//! assert_eq!(input.cursor(), 1);
+//! assert_eq!(input.cursor(), 11);
+//! assert_eq!(input.to_string(), "Hello World");
 //! ```
 //!
-//! See other examples on GitHub repository.
+//! See other examples in the [GitHub repo](https://github.com/sayanarijit/tui-input/tree/main/examples).
 
 mod input;
 
