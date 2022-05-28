@@ -93,7 +93,7 @@ fn run_app<B: Backend>(
                 InputMode::Editing => match key.code {
                     KeyCode::Enter => {
                         app.messages.push(app.input.value().into());
-                        app.input = Input::default();
+                        app.input.reset();
                     }
                     KeyCode::Esc => {
                         app.input_mode = InputMode::Normal;

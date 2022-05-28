@@ -8,13 +8,12 @@ use tui_input::backend::termion as backend;
 use tui_input::Input;
 
 fn main() -> Result<()> {
-    let mut value = "Hello ".to_string();
+    let mut input: Input = "Hello ".into();
     {
         let stdin = stdin();
         let stdout = stdout().into_raw_mode().unwrap();
         let mut stdout = AlternateScreen::from(stdout);
 
-        let mut input = Input::default().with_value(value);
         write!(&mut stdout, "{}", Hide)?;
         backend::write(&mut stdout, input.value(), input.cursor(), (0, 0), 15)?;
         stdout.flush()?;
@@ -41,10 +40,9 @@ fn main() -> Result<()> {
             }
         }
 
-        value = input.value().to_string();
         write!(stdout, "{}", Show)?;
     }
 
-    println!("{}", value);
+    println!("{}", input);
     Ok(())
 }

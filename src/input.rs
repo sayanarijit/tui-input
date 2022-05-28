@@ -35,11 +35,10 @@ pub type InputResponse = Option<StateChanged>;
 /// ```
 /// use tui_input::Input;
 ///
-/// let value = "Hello World".to_string();
-/// let input = Input::default().with_value(value);
+/// let input: Input = "Hello World".into();
 ///
-/// assert_eq!(input.value(), "Hello World");
 /// assert_eq!(input.cursor(), 11);
+/// assert_eq!(input.to_string(), "Hello World");
 /// ```
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -49,6 +48,13 @@ pub struct Input {
 }
 
 impl Input {
+    /// Initialize a new instance with a given value
+    /// Cursor will be set to the given value's length.
+    pub fn new(value: String) -> Self {
+        let len = value.chars().count();
+        Self { value, cursor: len }
+    }
+
     /// Set the value manually.
     /// Cursor will be set to the given value's length.
     pub fn with_value(mut self, value: String) -> Self {
@@ -62,6 +68,12 @@ impl Input {
     pub fn with_cursor(mut self, cursor: usize) -> Self {
         self.cursor = cursor.min(self.value.chars().count());
         self
+    }
+
+    // Reset the cursor and value to default
+    pub fn reset(&mut self) {
+        self.cursor = Default::default();
+        self.value = Default::default();
     }
 
     /// Handle request and emit response.
@@ -309,6 +321,30 @@ impl Input {
     }
 }
 
+impl From<Input> for String {
+    fn from(input: Input) -> Self {
+        input.value
+    }
+}
+
+impl From<String> for Input {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<&str> for Input {
+    fn from(value: &str) -> Self {
+        Self::new(value.into())
+    }
+}
+
+impl std::fmt::Display for Input {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.value.fmt(f)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -317,8 +353,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn format() {
+        let input: Input = TEXT.into();
+        println!("{}", input);
+        println!("{}", input);
+    }
+
+    #[test]
     fn set_cursor() {
-        let mut input = Input::default().with_value(TEXT.into());
+        let mut input: Input = TEXT.into();
 
         let req = InputRequest::SetCursor(3);
         let resp = input.handle(req);
@@ -355,7 +398,7 @@ mod tests {
 
     #[test]
     fn insert_char() {
-        let mut input = Input::default().with_value(TEXT.into());
+        let mut input: Input = TEXT.into();
 
         let req = InputRequest::InsertChar('x');
         let resp = input.handle(req);
@@ -386,7 +429,7 @@ mod tests {
 
     #[test]
     fn go_to_prev_char() {
-        let mut input = Input::default().with_value(TEXT.into());
+        let mut input: Input = TEXT.into();
 
         let req = InputRequest::GoToPrevChar;
         let resp = input.handle(req);
@@ -414,7 +457,7 @@ mod tests {
 
     #[test]
     fn remove_unicode_chars() {
-        let mut input = Input::default().with_value("¡test¡".into());
+        let mut input: Input = "¡test¡".into();
 
         let req = InputRequest::DeletePrevChar;
         let resp = input.handle(req);
@@ -449,8 +492,7 @@ mod tests {
 
     #[test]
     fn insert_unicode_chars() {
-        let mut input =
-            Input::default().with_value("¡test¡".into()).with_cursor(5);
+        let mut input = Input::from("¡test¡").with_cursor(5);
 
         let req = InputRequest::InsertChar('☆');
         let resp = input.handle(req);
