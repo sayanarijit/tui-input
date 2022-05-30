@@ -80,3 +80,20 @@ pub fn write<W: Write>(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn handle_tab() {
+        let evt = CrosstermEvent::Key(KeyEvent {
+            code: KeyCode::Tab,
+            modifiers: KeyModifiers::NONE,
+        });
+
+        let req = to_input_request(evt);
+
+        assert!(req.is_none());
+    }
+}
