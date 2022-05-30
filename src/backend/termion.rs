@@ -20,6 +20,7 @@ pub fn to_input_request(evt: &Event) -> Option<InputRequest> {
         // Event::Key(Key::Ctrl(Key::Delete)) => Some(DeleteNextWord),
         Event::Key(Key::Ctrl('a')) => Some(GoToStart),
         Event::Key(Key::Ctrl('e')) => Some(GoToEnd),
+        Event::Key(Key::Char('\t')) => None,
         Event::Key(Key::Char(c)) => Some(InsertChar(c)),
         _ => None,
     }

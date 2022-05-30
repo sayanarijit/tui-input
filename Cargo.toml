@@ -1,6 +1,6 @@
 [package]
 name = "tui-input"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 authors = ["Arijit Basu <hi@arijitbasu.in>"]
 description = "TUI input library supporting multiple backends"

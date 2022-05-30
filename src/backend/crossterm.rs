@@ -17,11 +17,9 @@ pub fn to_input_request(evt: CrosstermEvent) -> Option<InputRequest> {
     match evt {
         CrosstermEvent::Key(KeyEvent { code, modifiers }) => {
             match (code, modifiers) {
-                (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
-                (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
                 (Backspace, KeyModifiers::NONE) => Some(DeletePrevChar),
                 (Delete, KeyModifiers::NONE) => Some(DeleteNextChar),
-                (Tab, KeyModifiers::NONE) => Some(InsertChar('\t')),
+                (Tab, KeyModifiers::NONE) => None,
                 (Left, KeyModifiers::NONE) => Some(GoToPrevChar),
                 (Left, KeyModifiers::CONTROL) => Some(GoToPrevWord),
                 (Right, KeyModifiers::NONE) => Some(GoToNextChar),
@@ -31,6 +29,8 @@ pub fn to_input_request(evt: CrosstermEvent) -> Option<InputRequest> {
                 (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
                 (Char('a'), KeyModifiers::CONTROL) => Some(GoToStart),
                 (Char('e'), KeyModifiers::CONTROL) => Some(GoToEnd),
+                (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
+                (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
                 (_, _) => None,
             }
         }
