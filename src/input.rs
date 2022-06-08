@@ -171,10 +171,7 @@ impl Input {
                         .value
                         .chars()
                         .rev()
-                        .skip(
-                            self.value.chars().count().max(self.cursor)
-                                - self.cursor,
-                        )
+                        .skip(self.value.chars().count().max(self.cursor) - self.cursor)
                         .skip_while(|c| !c.is_alphanumeric())
                         .skip_while(|c| c.is_alphanumeric())
                         .count();
@@ -241,16 +238,12 @@ impl Input {
                         .value
                         .chars()
                         .rev()
-                        .skip(
-                            self.value.chars().count().max(self.cursor)
-                                - self.cursor,
-                        )
+                        .skip(self.value.chars().count().max(self.cursor) - self.cursor)
                         .skip_while(|c| !c.is_alphanumeric())
                         .skip_while(|c| c.is_alphanumeric())
                         .collect::<Vec<char>>();
                     let rev_len = rev.len();
-                    self.value =
-                        rev.into_iter().rev().chain(remaining).collect();
+                    self.value = rev.into_iter().rev().chain(remaining).collect();
                     self.cursor = rev_len;
                     Some(StateChanged {
                         value: true,

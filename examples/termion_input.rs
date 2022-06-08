@@ -20,8 +20,7 @@ fn main() -> Result<()> {
 
         for evt in stdin.events() {
             let evt = evt?;
-            if evt == Event::Key(Key::Esc) || evt == Event::Key(Key::Char('\n'))
-            {
+            if evt == Event::Key(Key::Esc) || evt == Event::Key(Key::Char('\n')) {
                 break;
             }
 
@@ -29,13 +28,7 @@ fn main() -> Result<()> {
                 .and_then(|req| input.handle(req))
                 .is_some()
             {
-                backend::write(
-                    &mut stdout,
-                    input.value(),
-                    input.cursor(),
-                    (0, 0),
-                    15,
-                )?;
+                backend::write(&mut stdout, input.value(), input.cursor(), (0, 0), 15)?;
                 stdout.flush()?;
             }
         }

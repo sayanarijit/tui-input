@@ -1,12 +1,9 @@
 use crossterm::{
     cursor::{Hide, Show},
-    event::{
-        read, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent,
-    },
+    event::{read, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent},
     execute,
     terminal::{
-        disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
-        LeaveAlternateScreen,
+        disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
     },
     Result,
 };

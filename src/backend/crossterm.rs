@@ -1,7 +1,5 @@
 use crate::InputRequest;
-use crossterm::event::{
-    Event as CrosstermEvent, KeyCode, KeyEvent, KeyModifiers,
-};
+use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{
     cursor::MoveTo,
     queue,
@@ -15,25 +13,23 @@ pub fn to_input_request(evt: CrosstermEvent) -> Option<InputRequest> {
     use InputRequest::*;
     use KeyCode::*;
     match evt {
-        CrosstermEvent::Key(KeyEvent { code, modifiers }) => {
-            match (code, modifiers) {
-                (Backspace, KeyModifiers::NONE) => Some(DeletePrevChar),
-                (Delete, KeyModifiers::NONE) => Some(DeleteNextChar),
-                (Tab, KeyModifiers::NONE) => None,
-                (Left, KeyModifiers::NONE) => Some(GoToPrevChar),
-                (Left, KeyModifiers::CONTROL) => Some(GoToPrevWord),
-                (Right, KeyModifiers::NONE) => Some(GoToNextChar),
-                (Right, KeyModifiers::CONTROL) => Some(GoToNextWord),
-                (Char('u'), KeyModifiers::CONTROL) => Some(DeleteLine),
-                (Char('w'), KeyModifiers::CONTROL) => Some(DeletePrevWord),
-                (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
-                (Char('a'), KeyModifiers::CONTROL) => Some(GoToStart),
-                (Char('e'), KeyModifiers::CONTROL) => Some(GoToEnd),
-                (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
-                (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
-                (_, _) => None,
-            }
-        }
+        CrosstermEvent::Key(KeyEvent { code, modifiers }) => match (code, modifiers) {
+            (Backspace, KeyModifiers::NONE) => Some(DeletePrevChar),
+            (Delete, KeyModifiers::NONE) => Some(DeleteNextChar),
+            (Tab, KeyModifiers::NONE) => None,
+            (Left, KeyModifiers::NONE) => Some(GoToPrevChar),
+            (Left, KeyModifiers::CONTROL) => Some(GoToPrevWord),
+            (Right, KeyModifiers::NONE) => Some(GoToNextChar),
+            (Right, KeyModifiers::CONTROL) => Some(GoToNextWord),
+            (Char('u'), KeyModifiers::CONTROL) => Some(DeleteLine),
+            (Char('w'), KeyModifiers::CONTROL) => Some(DeletePrevWord),
+            (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
+            (Char('a'), KeyModifiers::CONTROL) => Some(GoToStart),
+            (Char('e'), KeyModifiers::CONTROL) => Some(GoToEnd),
+            (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
+            (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
+            (_, _) => None,
+        },
         _ => None,
     }
 }

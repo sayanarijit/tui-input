@@ -3,8 +3,7 @@ use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{
-        disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
-        LeaveAlternateScreen,
+        disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
     },
 };
 use std::{error::Error, io};
@@ -72,10 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_app<B: Backend>(
-    terminal: &mut Terminal<B>,
-    mut app: App,
-) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
 
@@ -126,15 +122,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         InputMode::Normal => (
             vec![
                 Span::raw("Press "),
-                Span::styled(
-                    "q",
-                    Style::default().add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(" to exit, "),
-                Span::styled(
-                    "e",
-                    Style::default().add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(" to start editing."),
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
@@ -142,15 +132,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         InputMode::Editing => (
             vec![
                 Span::raw("Press "),
-                Span::styled(
-                    "Esc",
-                    Style::default().add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(" to stop editing, "),
-                Span::styled(
-                    "Enter",
-                    Style::default().add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(" to record the message"),
             ],
             Style::default(),
