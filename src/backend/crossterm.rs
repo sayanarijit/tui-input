@@ -13,19 +13,43 @@ pub fn to_input_request(evt: CrosstermEvent) -> Option<InputRequest> {
     use InputRequest::*;
     use KeyCode::*;
     match evt {
-        CrosstermEvent::Key(KeyEvent { code, modifiers }) => match (code, modifiers) {
-            (Backspace, KeyModifiers::NONE) => Some(DeletePrevChar),
+        CrosstermEvent::Key(KeyEvent {
+            code,
+            modifiers,
+            kind: _,
+            state: _,
+        }) => match (code, modifiers) {
+            (Backspace, KeyModifiers::NONE) | (Char('h'), KeyModifiers::CONTROL) => {
+                Some(DeletePrevChar)
+            }
             (Delete, KeyModifiers::NONE) => Some(DeleteNextChar),
             (Tab, KeyModifiers::NONE) => None,
-            (Left, KeyModifiers::NONE) => Some(GoToPrevChar),
-            (Left, KeyModifiers::CONTROL) => Some(GoToPrevWord),
-            (Right, KeyModifiers::NONE) => Some(GoToNextChar),
-            (Right, KeyModifiers::CONTROL) => Some(GoToNextWord),
+            (Left, KeyModifiers::NONE) | (Char('b'), KeyModifiers::CONTROL) => {
+                Some(GoToPrevChar)
+            }
+            (Left, KeyModifiers::CONTROL) | (Char('b'), KeyModifiers::META) => {
+                Some(GoToPrevWord)
+            }
+            (Right, KeyModifiers::NONE) | (Char('f'), KeyModifiers::CONTROL) => {
+                Some(GoToNextChar)
+            }
+            (Right, KeyModifiers::CONTROL) | (Char('f'), KeyModifiers::META) => {
+                Some(GoToNextWord)
+            }
             (Char('u'), KeyModifiers::CONTROL) => Some(DeleteLine),
-            (Char('w'), KeyModifiers::CONTROL) => Some(DeletePrevWord),
+
+            (Char('w'), KeyModifiers::CONTROL)
+            | (Char('d'), KeyModifiers::META)
+            | (Backspace, KeyModifiers::META) => Some(DeletePrevWord),
+
             (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
-            (Char('a'), KeyModifiers::CONTROL) => Some(GoToStart),
-            (Char('e'), KeyModifiers::CONTROL) => Some(GoToEnd),
+            (Char('k'), KeyModifiers::CONTROL) => Some(DeleteTillEnd),
+            (Char('a'), KeyModifiers::CONTROL) | (Home, KeyModifiers::NONE) => {
+                Some(GoToStart)
+            }
+            (Char('e'), KeyModifiers::CONTROL) | (End, KeyModifiers::NONE) => {
+                Some(GoToEnd)
+            }
             (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
             (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
             (_, _) => None,
@@ -79,6 +103,8 @@ pub fn write<W: Write>(
 
 #[cfg(test)]
 mod tests {
+    use crossterm::event::{KeyEventKind, KeyEventState};
+
     use super::*;
 
     #[test]
@@ -86,6 +112,8 @@ mod tests {
         let evt = CrosstermEvent::Key(KeyEvent {
             code: KeyCode::Tab,
             modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
         });
 
         let req = to_input_request(evt);

@@ -17,6 +17,7 @@ pub enum InputRequest {
     DeletePrevWord,
     DeleteNextWord,
     DeleteLine,
+    DeleteTillEnd,
 }
 
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
@@ -299,6 +300,14 @@ impl Input {
                         cursor: true,
                     })
                 }
+            }
+
+            DeleteTillEnd => {
+                self.value = self.value.chars().take(self.cursor).collect();
+                Some(StateChanged {
+                    value: true,
+                    cursor: false,
+                })
             }
         }
     }
