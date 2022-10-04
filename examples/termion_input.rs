@@ -5,6 +5,7 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 use tui_input::backend::termion as backend;
+use tui_input::backend::termion::EventHandler;
 use tui_input::Input;
 
 fn main() -> Result<()> {
@@ -24,10 +25,7 @@ fn main() -> Result<()> {
                 break;
             }
 
-            if backend::to_input_request(&evt)
-                .and_then(|req| input.handle(req))
-                .is_some()
-            {
+            if input.handle_event(&evt).is_some() {
                 backend::write(&mut stdout, input.value(), input.cursor(), (0, 0), 15)?;
                 stdout.flush()?;
             }

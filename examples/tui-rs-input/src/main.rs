@@ -16,6 +16,7 @@ use tui::{
     Frame, Terminal,
 };
 use tui_input::backend::crossterm as input_backend;
+use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
 
 enum InputMode {
@@ -95,8 +96,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.input_mode = InputMode::Normal;
                     }
                     _ => {
-                        input_backend::to_input_request(Event::Key(key))
-                            .and_then(|req| app.input.handle(req));
+                        app.input.handle_event(&Event::Key(key));
                     }
                 },
             }

@@ -1,4 +1,6 @@
 use crate::input::InputRequest;
+use crate::Input;
+use crate::StateChanged;
 use std::io::{Result, Write};
 use termion::cursor::Goto;
 use termion::event::{Event, Key};
@@ -62,6 +64,16 @@ pub fn write<W: Write>(
     }
 
     Ok(())
+}
+
+pub trait EventHandler {
+    fn handle_event(&mut self, evt: &Event) -> Option<StateChanged>;
+}
+
+impl EventHandler for Input {
+    fn handle_event(&mut self, evt: &Event) -> Option<StateChanged> {
+        to_input_request(evt).and_then(|req| self.handle(req))
+    }
 }
 
 #[cfg(test)]
