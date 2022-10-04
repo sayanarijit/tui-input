@@ -1,4 +1,4 @@
-use crate::InputRequest;
+use crate::{Input, InputRequest, StateChanged};
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{
     cursor::MoveTo,
@@ -9,7 +9,7 @@ use crossterm::{
 use std::io::Write;
 
 /// Converts crossterm event into input requests.
-pub fn to_input_request(evt: CrosstermEvent) -> Option<InputRequest> {
+pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
     use InputRequest::*;
     use KeyCode::*;
     match evt {
@@ -18,7 +18,7 @@ pub fn to_input_request(evt: CrosstermEvent) -> Option<InputRequest> {
             modifiers,
             kind: _,
             state: _,
-        }) => match (code, modifiers) {
+        }) => match (*code, *modifiers) {
             (Backspace, KeyModifiers::NONE) | (Char('h'), KeyModifiers::CONTROL) => {
                 Some(DeletePrevChar)
             }
@@ -101,6 +101,16 @@ pub fn write<W: Write>(
     Ok(())
 }
 
+pub trait EventHandler {
+    fn handle_event(&mut self, evt: &CrosstermEvent) -> Option<StateChanged>;
+}
+
+impl EventHandler for Input {
+    fn handle_event(&mut self, evt: &CrosstermEvent) -> Option<StateChanged> {
+        to_input_request(evt).and_then(|req| self.handle(req))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crossterm::event::{KeyEventKind, KeyEventState};
@@ -116,7 +126,7 @@ mod tests {
             state: KeyEventState::NONE,
         });
 
-        let req = to_input_request(evt);
+        let req = to_input_request(&evt);
 
         assert!(req.is_none());
     }
