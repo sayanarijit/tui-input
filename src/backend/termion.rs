@@ -66,11 +66,14 @@ pub fn write<W: Write>(
     Ok(())
 }
 
+/// Import this trait to implement `Input::handle_event()` for termion.
 pub trait EventHandler {
+    /// Handle termion event.
     fn handle_event(&mut self, evt: &Event) -> Option<StateChanged>;
 }
 
 impl EventHandler for Input {
+    /// Handle termion event.
     fn handle_event(&mut self, evt: &Event) -> Option<StateChanged> {
         to_input_request(evt).and_then(|req| self.handle(req))
     }

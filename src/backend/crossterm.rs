@@ -101,11 +101,14 @@ pub fn write<W: Write>(
     Ok(())
 }
 
+/// Import this trait to implement `Input::handle_event()` for crossterm.
 pub trait EventHandler {
+    /// Handle crossterm event.
     fn handle_event(&mut self, evt: &CrosstermEvent) -> Option<StateChanged>;
 }
 
 impl EventHandler for Input {
+    /// Handle crossterm event.
     fn handle_event(&mut self, evt: &CrosstermEvent) -> Option<StateChanged> {
         to_input_request(evt).and_then(|req| self.handle(req))
     }
