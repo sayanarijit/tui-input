@@ -19,6 +19,7 @@ default = ["crossterm"]
 crossterm = { version = "0.25.0", optional = true }
 serde = { version = "1.0.145", optional = true, features = ["derive"] }
 termion = { version = "1.5.6", optional = true }
+unicode-width = "0.1.4"
 
 [[example]]
 name = "crossterm_input"
