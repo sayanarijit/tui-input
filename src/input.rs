@@ -321,6 +321,22 @@ impl Input {
     pub fn cursor(&self) -> usize {
         self.cursor
     }
+
+    /// Get the current cursor position with account for multispace characters.
+    pub fn visual_cursor(&self) -> usize {
+        if self.cursor == 0 {
+            return 0
+        }
+
+        // Safe, because the end index will always be within bounds
+        unicode_width::UnicodeWidthStr::width(unsafe {
+                self.value.get_unchecked(
+                    0..
+                    self.value.char_indices()
+                    .nth(self.cursor)
+                    .map_or_else(|| self.value.len(), |(index, _)| index))
+        })
+    }
 }
 
 impl From<Input> for String {
