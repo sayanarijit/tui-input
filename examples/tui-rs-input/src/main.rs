@@ -146,7 +146,21 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     f.render_widget(help_message, chunks[0]);
 
     let width = chunks[0].width.max(3) - 3; // keep 2 for borders and 1 for cursor
-    let scroll = (app.input.cursor() as u16).max(width) - width;
+    let mut scroll = (app.input.visual_cursor() as u16).max(width) - width;
+    let mut min_scroll = 0;
+    let mut chars = app.input.value().chars();
+
+    while min_scroll < scroll {
+        match chars.next() {
+            Some(c) => {
+                min_scroll += unicode_width::UnicodeWidthChar::width(c).unwrap_or(0) as u16;
+            },
+            None => break
+        }
+    }
+
+    scroll = min_scroll;
+
     let input = Paragraph::new(app.input.value())
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
@@ -164,7 +178,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + (app.input.cursor() as u16).min(width) + 1,
+                chunks[1].x + (app.input.visual_cursor() as u16) - scroll + 1,
                 // Move one line down, from the border to the input line
                 chunks[1].y + 1,
             )
