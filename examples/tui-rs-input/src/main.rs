@@ -15,7 +15,6 @@ use tui::{
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
-use tui_input::backend::crossterm as input_backend;
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
 
@@ -146,27 +145,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     f.render_widget(help_message, chunks[0]);
 
     let width = chunks[0].width.max(3) - 3; // keep 2 for borders and 1 for cursor
-    let mut scroll = (app.input.visual_cursor() as u16).max(width) - width;
-    let mut min_scroll = 0;
-    let mut chars = app.input.value().chars();
 
-    while min_scroll < scroll {
-        match chars.next() {
-            Some(c) => {
-                min_scroll += unicode_width::UnicodeWidthChar::width(c).unwrap_or(0) as u16;
-            },
-            None => break
-        }
-    }
-
-    scroll = min_scroll;
-
+    let scroll = app.input.visual_scroll(width as usize);
     let input = Paragraph::new(app.input.value())
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
             InputMode::Editing => Style::default().fg(Color::Yellow),
         })
-        .scroll((0, scroll))
+        .scroll((0, scroll as u16))
         .block(Block::default().borders(Borders::ALL).title("Input"));
     f.render_widget(input, chunks[1]);
     match app.input_mode {
@@ -178,7 +164,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + (app.input.visual_cursor() as u16) - scroll + 1,
+                chunks[1].x
+                    + ((app.input.visual_cursor()).max(scroll) - scroll) as u16
+                    + 1,
                 // Move one line down, from the border to the input line
                 chunks[1].y + 1,
             )
