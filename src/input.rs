@@ -562,4 +562,12 @@ mod tests {
         assert_eq!(input.value(), "¡☆test☆¡");
         assert_eq!(input.cursor(), 2);
     }
+
+    #[test]
+    fn multispace_characters() {
+        let input: Input = "Ｈｅｌｌｏ, ｗｏｒｌｄ!".into();
+        assert_eq!(input.cursor(), 13);
+        assert_eq!(input.visual_cursor(), 23);
+        assert_eq!(input.visual_scroll(6), 18);
+    }
 }
