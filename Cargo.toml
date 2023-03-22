@@ -1,6 +1,6 @@
 [package]
 name = "tui-input"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2021"
 authors = ["Arijit Basu <hi@arijitbasu.in>"]
 description = "TUI input library supporting multiple backends"
@@ -16,10 +16,10 @@ autoexamples = true
 default = ["crossterm"]
 
 [dependencies]
-crossterm = { version = "0.26.0", optional = true }
-serde = { version = "1.0.145", optional = true, features = ["derive"] }
-termion = { version = "1.5.6", optional = true }
-unicode-width = "0.1.4"
+crossterm = { version = "0.26.1", optional = true }
+serde = { version = "1.0.158", optional = true, features = ["derive"] }
+termion = { version = "2.0.1", optional = true }
+unicode-width = "0.1.10"
 
 [[example]]
 name = "crossterm_input"

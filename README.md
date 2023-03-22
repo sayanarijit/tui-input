@@ -3,7 +3,7 @@
 [![Crate Status](https://img.shields.io/crates/v/tui-input.svg)](https://crates.io/crates/tui-input)
 [![Docs Status](https://docs.rs/tui-input/badge.svg)](https://docs.rs/tui-input/)
 
-[![tui-input.gif](https://s10.gifyu.com/images/tui-input.gif)](https://github.com/sayanarijit/tui-input/blob/main/examples/tui-rs-input/src/main.rs)
+[![tui-input.gif](https://s10.gifyu.com/images/tui-input.gif)](https://github.com/sayanarijit/tui-input/blob/main/examples/ratatui-input/src/main.rs)
 
 A TUI input library supporting multiple backends.
 
@@ -41,7 +41,7 @@ cargo run --example crossterm_input
 cargo run --example termion_input --features termion
 
 # Run the tui-rs example
-(cd ./examples/tui-rs-input/ && cargo run)
+(cd ./examples/ratatui-input/ && cargo run)
 ```
 
 ## Used in

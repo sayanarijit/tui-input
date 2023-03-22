@@ -1,12 +1,12 @@
 [package]
-name = "tui-rs-input"
+name = "ratatui-input"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossterm = "0.26.0"
+crossterm = "0.26.1"
 tui = { package = "ratatui", version = "0.20.0", features = ["crossterm"] }
 tui-input = { path = "../../" }
 unicode-width = "0.1.10"
