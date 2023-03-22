@@ -12,11 +12,7 @@ fn main() -> Result<()> {
     let mut input: Input = "Hello ".into();
     {
         let stdin = stdin();
-        let mut stdout = stdout()
-            .into_raw_mode()
-            .unwrap()
-            .into_alternate_screen()
-            .unwrap();
+        let mut stdout = stdout().into_raw_mode()?.into_alternate_screen()?;
 
         write!(&mut stdout, "{}", Hide)?;
         backend::write(&mut stdout, input.value(), input.cursor(), (0, 0), 15)?;
