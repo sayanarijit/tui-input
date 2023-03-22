@@ -7,7 +7,9 @@
 
 A TUI input library supporting multiple backends.
 
-This crate can be used with [tui-rs](https://github.com/fdehau/tui-rs).
+This crate can be used with [tui-rs](https://github.com/fdehau/tui-rs) and [ratatui](https://github.com/tui-rs-revival/ratatui).
+
+For people using `tui-rs` use version `v0.6.*` for people migrating to `ratatui` use latest version.
 
 ## Install
 
