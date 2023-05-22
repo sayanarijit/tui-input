@@ -18,7 +18,7 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
             modifiers,
             kind,
             state: _,
-        }) if kind == KeyEventKind::Press => match (*code, *modifiers) {
+        }) if *kind == KeyEventKind::Press => match (*code, *modifiers) {
             (Backspace, KeyModifiers::NONE) | (Char('h'), KeyModifiers::CONTROL) => {
                 Some(DeletePrevChar)
             }
