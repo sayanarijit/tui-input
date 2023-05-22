@@ -1,5 +1,5 @@
 use crate::{Input, InputRequest, StateChanged};
-use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use crossterm::{
     cursor::MoveTo,
     queue,
@@ -16,9 +16,9 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
         CrosstermEvent::Key(KeyEvent {
             code,
             modifiers,
-            kind: _,
+            kind,
             state: _,
-        }) => match (*code, *modifiers) {
+        }) if kind == KeyEventKind::Press => match (*code, *modifiers) {
             (Backspace, KeyModifiers::NONE) | (Char('h'), KeyModifiers::CONTROL) => {
                 Some(DeletePrevChar)
             }
