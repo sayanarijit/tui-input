@@ -25,8 +25,8 @@ fn main() -> Result<()> {
     loop {
         let event = read()?;
 
-        match event {
-            Event::Key(KeyEvent { code, .. }) => match code {
+        if let Event::Key(KeyEvent { code, .. }) = event {
+            match code {
                 KeyCode::Esc | KeyCode::Enter => {
                     break;
                 }
@@ -42,8 +42,7 @@ fn main() -> Result<()> {
                         stdout.flush()?;
                     }
                 }
-            },
-            _ => {}
+            }
         }
     }
 

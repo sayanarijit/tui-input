@@ -1,5 +1,7 @@
 use crate::{Input, InputRequest, StateChanged};
-use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{
+    Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
+};
 use crossterm::{
     cursor::MoveTo,
     queue,
