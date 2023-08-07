@@ -5,9 +5,8 @@ use crossterm::{
     terminal::{
         disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
     },
-    Result,
 };
-use std::io::{stdout, Write};
+use std::io::{stdout, Result, Write};
 use tui_input::backend::crossterm as backend;
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;

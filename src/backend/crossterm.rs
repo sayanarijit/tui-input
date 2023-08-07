@@ -6,9 +6,8 @@ use crossterm::{
     cursor::MoveTo,
     queue,
     style::{Attribute as CAttribute, Print, SetAttribute},
-    Result,
 };
-use std::io::Write;
+use std::io::{Result, Write};
 
 /// Converts crossterm event into input requests.
 pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
