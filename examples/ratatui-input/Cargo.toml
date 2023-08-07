@@ -7,7 +7,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossterm = "0.26.1"
-tui = { package = "ratatui", version = "0.21.0", features = ["crossterm"] }
+crossterm = "0.27.0"
+tui = { package = "ratatui", git = "https://github.com/a-kenji/ratatui", branch = "update/crossterm", features = ["crossterm"] }
 tui-input = { path = "../../" }
 unicode-width = "0.1.10"
