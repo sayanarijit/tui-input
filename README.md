@@ -43,7 +43,3 @@ cargo run --example termion_input --features termion
 # Run the tui-rs example
 (cd ./examples/ratatui-input/ && cargo run)
 ```
-
-## Used in
-
-- [xplr](https://github.com/sayanarijit/xplr)
