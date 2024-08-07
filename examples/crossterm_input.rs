@@ -1,4 +1,4 @@
-use crossterm::{
+use ratatui::crossterm::{
     cursor::{Hide, Show},
     event::{read, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent},
     execute,
