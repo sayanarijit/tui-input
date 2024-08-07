@@ -14,9 +14,10 @@ autoexamples = true
 
 [features]
 default = ["crossterm"]
+crossterm = ["dep:ratatui"]
 
 [dependencies]
-crossterm = { version = "0.27.0", optional = true }
+ratatui = { version = "0.28", optional = true }
 serde = { version = "1.0.203", optional = true, features = ["derive"] }
 termion = { version = "4.0.2", optional = true }
 unicode-width = "0.1.13"
