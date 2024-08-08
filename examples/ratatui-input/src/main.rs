@@ -1,18 +1,15 @@
 /// This example is taken from https://raw.githubusercontent.com/fdehau/tui-rs/master/examples/user_input.rs
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{
-        disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-    },
-};
+use ratatui::prelude::*;
 use ratatui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
+    crossterm::{
+        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+        execute,
+        terminal::{
+            disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
+            LeaveAlternateScreen,
+        },
+    },
     widgets::{Block, Borders, List, ListItem, Paragraph},
-    Frame, Terminal,
 };
 use std::{error::Error, io};
 use tui_input::backend::crossterm::EventHandler;
@@ -115,7 +112,7 @@ fn ui(f: &mut Frame, app: &App) {
             ]
             .as_ref(),
         )
-        .split(f.size());
+        .split(f.area());
 
     let (msg, style) = match app.input_mode {
         InputMode::Normal => (
@@ -161,14 +158,14 @@ fn ui(f: &mut Frame, app: &App) {
 
         InputMode::Editing => {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
-            f.set_cursor(
+            f.set_cursor_position((
                 // Put cursor past the end of the input text
                 chunks[1].x
                     + ((app.input.visual_cursor()).max(scroll) - scroll) as u16
                     + 1,
                 // Move one line down, from the border to the input line
                 chunks[1].y + 1,
-            )
+            ))
         }
     }
 
