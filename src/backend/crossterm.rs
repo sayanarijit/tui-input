@@ -41,7 +41,8 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
 
             (Char('w'), KeyModifiers::CONTROL)
             | (Char('d'), KeyModifiers::META)
-            | (Backspace, KeyModifiers::META) => Some(DeletePrevWord),
+            | (Backspace, KeyModifiers::META)
+            | (Backspace, KeyModifiers::ALT) => Some(DeletePrevWord),
 
             (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
             (Char('k'), KeyModifiers::CONTROL) => Some(DeleteTillEnd),
