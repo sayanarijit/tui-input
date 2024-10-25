@@ -1,6 +1,6 @@
 [package]
 name = "tui-input"
-version = "0.10.1"
+version = "0.11.0"
 edition = "2021"
 authors = ["Arijit Basu <hi@arijitbasu.in>"]
 description = "TUI input library supporting multiple backends"
@@ -17,10 +17,10 @@ default = ["crossterm"]
 crossterm = ["dep:ratatui"]
 
 [dependencies]
-ratatui = { version = "0.28", optional = true }
-serde = { version = "1.0.209", optional = true, features = ["derive"] }
-termion = { version = "4.0.2", optional = true }
-unicode-width = "0.1.13"
+ratatui = { version = "0.29", optional = true }
+serde = { version = "1.0.213", optional = true, features = ["derive"] }
+termion = { version = "4.0.3", optional = true }
+unicode-width = "0.2.0"
 
 [[example]]
 name = "crossterm_input"
