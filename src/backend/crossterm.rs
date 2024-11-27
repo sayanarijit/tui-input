@@ -19,43 +19,45 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
             modifiers,
             kind,
             state: _,
-        }) if *kind == KeyEventKind::Press => match (*code, *modifiers) {
-            (Backspace, KeyModifiers::NONE) | (Char('h'), KeyModifiers::CONTROL) => {
-                Some(DeletePrevChar)
-            }
-            (Delete, KeyModifiers::NONE) => Some(DeleteNextChar),
-            (Tab, KeyModifiers::NONE) => None,
-            (Left, KeyModifiers::NONE) | (Char('b'), KeyModifiers::CONTROL) => {
-                Some(GoToPrevChar)
-            }
-            (Left, KeyModifiers::CONTROL) | (Char('b'), KeyModifiers::META) => {
-                Some(GoToPrevWord)
-            }
-            (Right, KeyModifiers::NONE) | (Char('f'), KeyModifiers::CONTROL) => {
-                Some(GoToNextChar)
-            }
-            (Right, KeyModifiers::CONTROL) | (Char('f'), KeyModifiers::META) => {
-                Some(GoToNextWord)
-            }
-            (Char('u'), KeyModifiers::CONTROL) => Some(DeleteLine),
+        }) if *kind == KeyEventKind::Press || *kind == KeyEventKind::Repeat => {
+            match (*code, *modifiers) {
+                (Backspace, KeyModifiers::NONE) | (Char('h'), KeyModifiers::CONTROL) => {
+                    Some(DeletePrevChar)
+                }
+                (Delete, KeyModifiers::NONE) => Some(DeleteNextChar),
+                (Tab, KeyModifiers::NONE) => None,
+                (Left, KeyModifiers::NONE) | (Char('b'), KeyModifiers::CONTROL) => {
+                    Some(GoToPrevChar)
+                }
+                (Left, KeyModifiers::CONTROL) | (Char('b'), KeyModifiers::META) => {
+                    Some(GoToPrevWord)
+                }
+                (Right, KeyModifiers::NONE) | (Char('f'), KeyModifiers::CONTROL) => {
+                    Some(GoToNextChar)
+                }
+                (Right, KeyModifiers::CONTROL) | (Char('f'), KeyModifiers::META) => {
+                    Some(GoToNextWord)
+                }
+                (Char('u'), KeyModifiers::CONTROL) => Some(DeleteLine),
 
-            (Char('w'), KeyModifiers::CONTROL)
-            | (Char('d'), KeyModifiers::META)
-            | (Backspace, KeyModifiers::META)
-            | (Backspace, KeyModifiers::ALT) => Some(DeletePrevWord),
+                (Char('w'), KeyModifiers::CONTROL)
+                | (Char('d'), KeyModifiers::META)
+                | (Backspace, KeyModifiers::META)
+                | (Backspace, KeyModifiers::ALT) => Some(DeletePrevWord),
 
-            (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
-            (Char('k'), KeyModifiers::CONTROL) => Some(DeleteTillEnd),
-            (Char('a'), KeyModifiers::CONTROL) | (Home, KeyModifiers::NONE) => {
-                Some(GoToStart)
+                (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
+                (Char('k'), KeyModifiers::CONTROL) => Some(DeleteTillEnd),
+                (Char('a'), KeyModifiers::CONTROL) | (Home, KeyModifiers::NONE) => {
+                    Some(GoToStart)
+                }
+                (Char('e'), KeyModifiers::CONTROL) | (End, KeyModifiers::NONE) => {
+                    Some(GoToEnd)
+                }
+                (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
+                (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
+                (_, _) => None,
             }
-            (Char('e'), KeyModifiers::CONTROL) | (End, KeyModifiers::NONE) => {
-                Some(GoToEnd)
-            }
-            (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
-            (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
-            (_, _) => None,
-        },
+        }
         _ => None,
     }
 }
@@ -134,5 +136,19 @@ mod tests {
         let req = to_input_request(&evt);
 
         assert!(req.is_none());
+    }
+
+    #[test]
+    fn handle_repeat() {
+        let evt = CrosstermEvent::Key(KeyEvent {
+            code: KeyCode::Char('a'),
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Repeat,
+            state: KeyEventState::NONE,
+        });
+
+        let req = to_input_request(&evt);
+
+        assert_eq!(req, Some(InputRequest::InsertChar('a')));
     }
 }
