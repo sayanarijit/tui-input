@@ -24,12 +24,17 @@ serde = { version = "1.0.213", optional = true, features = ["derive"] }
 termion = { version = "4.0.3", optional = true }
 unicode-width = "0.2.0"
 
+[dev-dependencies]
+crossterm = { version = "0.28.1" }
+
 [[example]]
 name = "crossterm_input"
-path = "./examples/crossterm_input.rs"
 required-features = ["crossterm"]
 
 [[example]]
 name = "termion_input"
-path = "./examples/termion_input.rs"
 required-features = ["termion"]
+
+[[example]]
+name = "ratatui_input"
+required-features = ["crossterm"]
