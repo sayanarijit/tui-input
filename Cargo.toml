@@ -29,10 +29,12 @@ crossterm = { version = "0.28.1" }
 
 [[example]]
 name = "crossterm_input"
-path = "./examples/crossterm_input.rs"
 required-features = ["crossterm"]
 
 [[example]]
 name = "termion_input"
-path = "./examples/termion_input.rs"
 required-features = ["termion"]
+
+[[example]]
+name = "ratatui_input"
+required-features = ["crossterm"]
