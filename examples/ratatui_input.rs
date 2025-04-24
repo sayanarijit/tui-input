@@ -70,8 +70,7 @@ impl App {
     }
 
     fn push_message(&mut self) {
-        self.messages.push(self.input.value().into());
-        self.input.reset();
+        self.messages.push(self.input.value_and_reset());
     }
 
     fn render(&self, frame: &mut Frame) {
