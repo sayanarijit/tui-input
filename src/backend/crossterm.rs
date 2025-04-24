@@ -123,13 +123,14 @@ impl EventHandler for Input {
 
 #[cfg(test)]
 mod tests {
-    use crossterm::event::{KeyEventKind, KeyEventState};
-
     use super::*;
+    use ratatui::crossterm::event::{
+        Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers,
+    };
 
     #[test]
     fn handle_tab() {
-        let evt = CrosstermEvent::Key(KeyEvent {
+        let evt = Event::Key(KeyEvent {
             code: KeyCode::Tab,
             modifiers: KeyModifiers::NONE,
             kind: KeyEventKind::Press,
@@ -143,7 +144,7 @@ mod tests {
 
     #[test]
     fn handle_repeat() {
-        let evt = CrosstermEvent::Key(KeyEvent {
+        let evt = Event::Key(KeyEvent {
             code: KeyCode::Char('a'),
             modifiers: KeyModifiers::NONE,
             kind: KeyEventKind::Repeat,
