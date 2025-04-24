@@ -1,3 +1,6 @@
+#[cfg(feature = "ratatui-crossterm")]
+use ratatui::crossterm;
+
 use crate::{Input, InputRequest, StateChanged};
 use crossterm::event::{
     Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
