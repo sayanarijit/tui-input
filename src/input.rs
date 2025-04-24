@@ -1,3 +1,20 @@
+//! Core logic for handling input.
+//!
+//! # Example: Without any backend
+//!
+//! ```
+//! use tui_input::{Input, InputRequest, StateChanged};
+//!
+//! let mut input: Input = "Hello Worl".into();
+//!
+//! let req = InputRequest::InsertChar('d');
+//! let resp = input.handle(req);
+//!
+//! assert_eq!(resp, Some(StateChanged { value: true, cursor: true }));
+//! assert_eq!(input.cursor(), 11);
+//! assert_eq!(input.to_string(), "Hello World");
+//! ```
+
 /// Input requests are used to change the input state.
 ///
 /// Different backends can be used to convert events into requests.
@@ -75,6 +92,13 @@ impl Input {
     pub fn reset(&mut self) {
         self.cursor = Default::default();
         self.value = Default::default();
+    }
+
+    // Reset the cursor and value to default, returning the previous value
+    pub fn value_and_reset(&mut self) -> String {
+        let val = self.value.clone();
+        self.reset();
+        val
     }
 
     /// Handle request and emit response.

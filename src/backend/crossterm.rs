@@ -1,8 +1,8 @@
 use crate::{Input, InputRequest, StateChanged};
-use ratatui::crossterm::event::{
+use crossterm::event::{
     Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };
-use ratatui::crossterm::{
+use crossterm::{
     cursor::MoveTo,
     queue,
     style::{Attribute as CAttribute, Print, SetAttribute},
@@ -120,7 +120,7 @@ impl EventHandler for Input {
 
 #[cfg(test)]
 mod tests {
-    use ratatui::crossterm::event::{KeyEventKind, KeyEventState};
+    use crossterm::event::{KeyEventKind, KeyEventState};
 
     use super::*;
 
