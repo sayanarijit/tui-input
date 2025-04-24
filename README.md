@@ -16,8 +16,11 @@ For people using `tui-rs` use version `v0.6.*` for people migrating to `ratatui`
 Cargo.toml
 
 ```toml
-# crossterm
+# ratatui::crossterm
 tui-input = "*"
+
+# Direct crossterm
+tui-input = { version = "*", features = ["crossterm"], default-features = false }
 
 # termion
 tui-input = { version = "*", features = ["termion"], default-features = false }
@@ -36,12 +39,12 @@ tui-input = { version = "*", features = ["termion"], default-features = false }
 See [examples](https://github.com/sayanarijit/tui-input/tree/main/examples).
 
 ```bash
+# Run the ratatui example
+cargo run --example ratatui_crossterm_input
+
 # Run the example with crossterm as backend.
-cargo run --example crossterm_input
+cargo run --example crossterm_input --features crossterm --no-default-features
 
 # Run the example with termion as backend.
-cargo run --example termion_input --features termion
-
-# Run the tui-rs example
-(cd ./examples/ratatui-input/ && cargo run)
+cargo run --example termion_input --features termion --no-default-features
 ```
