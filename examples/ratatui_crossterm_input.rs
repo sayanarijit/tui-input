@@ -1,7 +1,7 @@
 use std::io;
 
-use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
+    crossterm::event::{self, Event, KeyCode},
     layout::{Constraint, Layout, Rect},
     style::{Color, Style, Stylize},
     text::{Line, ToSpan},

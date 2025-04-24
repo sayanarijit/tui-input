@@ -25,7 +25,9 @@ tui-input = { version = "*", features = ["termion"], default-features = false }
 
 ## Features
 
-- crossterm (default)
+- ratatui-crossterm (default)
+- ratatui-termion
+- crossterm
 - termion
 - serde
 

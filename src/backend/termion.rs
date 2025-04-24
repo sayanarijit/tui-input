@@ -1,3 +1,6 @@
+#[cfg(feature = "ratatui-termion")]
+use ratatui::termion;
+
 use crate::input::InputRequest;
 use crate::Input;
 use crate::StateChanged;
