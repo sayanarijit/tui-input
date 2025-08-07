@@ -341,7 +341,7 @@ impl Input {
         self.value.as_str()
     }
 
-    /// Get the currect cursor placement.
+    /// Get the current cursor placement.
     pub fn cursor(&self) -> usize {
         self.cursor
     }
