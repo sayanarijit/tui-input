@@ -50,6 +50,7 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
 
                 (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
                 (Char('k'), KeyModifiers::CONTROL) => Some(DeleteTillEnd),
+                (Char('y'), KeyModifiers::CONTROL) => Some(Yank),
                 (Char('a'), KeyModifiers::CONTROL) | (Home, KeyModifiers::NONE) => {
                     Some(GoToStart)
                 }

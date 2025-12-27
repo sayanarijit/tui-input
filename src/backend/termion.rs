@@ -23,6 +23,7 @@ pub fn to_input_request(evt: &Event) -> Option<InputRequest> {
         Event::Key(Key::Ctrl('u')) => Some(DeleteLine),
         Event::Key(Key::Ctrl('w')) => Some(DeletePrevWord),
         // Event::Key(Key::Ctrl(Key::Delete)) => Some(DeleteNextWord),
+        Event::Key(Key::Ctrl('y')) => Some(Yank),
         Event::Key(Key::Ctrl('a')) | Event::Key(Key::Home) => Some(GoToStart),
         Event::Key(Key::Ctrl('e')) | Event::Key(Key::End) => Some(GoToEnd),
         Event::Key(Key::Char('\t')) => None,
