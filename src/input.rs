@@ -15,6 +15,11 @@
 //! assert_eq!(input.to_string(), "Hello World");
 //! ```
 
+enum Side {
+    Left,
+    Right,
+}
+
 /// Input requests are used to change the input state.
 ///
 /// Different backends can be used to convert events into requests.
@@ -35,6 +40,7 @@ pub enum InputRequest {
     DeleteNextWord,
     DeleteLine,
     DeleteTillEnd,
+    Yank,
 }
 
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
@@ -63,6 +69,8 @@ pub type InputResponse = Option<StateChanged>;
 pub struct Input {
     value: String,
     cursor: usize,
+    yank: String,
+    last_was_cut: bool,
 }
 
 impl Input {
@@ -70,7 +78,12 @@ impl Input {
     /// Cursor will be set to the given value's length.
     pub fn new(value: String) -> Self {
         let len = value.chars().count();
-        Self { value, cursor: len }
+        Self {
+            value,
+            cursor: len,
+            yank: String::new(),
+            last_was_cut: false,
+        }
     }
 
     /// Set the value manually.
@@ -101,10 +114,29 @@ impl Input {
         val
     }
 
+    fn add_to_yank(&mut self, deleted: String, side: Side) {
+        if self.last_was_cut {
+            match side {
+                Side::Left => self.yank.insert_str(0, &deleted),
+                Side::Right => self.yank.push_str(&deleted),
+            }
+        } else {
+            self.yank = deleted;
+        }
+    }
+
+    fn set_last_was_cut(&mut self, req: InputRequest) {
+        use InputRequest::*;
+        self.last_was_cut = matches!(
+            req,
+            DeleteLine | DeletePrevWord | DeleteNextWord | DeleteTillEnd
+        );
+    }
+
     /// Handle request and emit response.
     pub fn handle(&mut self, req: InputRequest) -> InputResponse {
         use InputRequest::*;
-        match req {
+        let result = match req {
             SetCursor(pos) => {
                 let pos = pos.min(self.value.chars().count());
                 if self.cursor == pos {
@@ -244,12 +276,17 @@ impl Input {
                 if self.value.is_empty() {
                     None
                 } else {
-                    let cursor = self.cursor;
+                    let side = if self.cursor == self.value.chars().count() {
+                        Side::Left
+                    } else {
+                        Side::Right
+                    };
+                    self.add_to_yank(self.value.clone(), side);
                     self.value = "".into();
                     self.cursor = 0;
                     Some(StateChanged {
                         value: true,
-                        cursor: self.cursor == cursor,
+                        cursor: true,
                     })
                 }
             }
@@ -258,7 +295,6 @@ impl Input {
                 if self.cursor == 0 {
                     None
                 } else {
-                    let remaining = self.value.chars().skip(self.cursor);
                     let rev = self
                         .value
                         .chars()
@@ -268,6 +304,14 @@ impl Input {
                         .skip_while(|c| c.is_alphanumeric())
                         .collect::<Vec<char>>();
                     let rev_len = rev.len();
+                    let deleted: String = self
+                        .value
+                        .chars()
+                        .skip(rev_len)
+                        .take(self.cursor - rev_len)
+                        .collect();
+                    self.add_to_yank(deleted, Side::Left);
+                    let remaining = self.value.chars().skip(self.cursor);
                     self.value = rev.into_iter().rev().chain(remaining).collect();
                     self.cursor = rev_len;
                     Some(StateChanged {
@@ -281,18 +325,24 @@ impl Input {
                 if self.cursor == self.value.chars().count() {
                     None
                 } else {
-                    self.value = self
+                    let after: Vec<_> = self
                         .value
                         .chars()
-                        .take(self.cursor)
-                        .chain(
-                            self.value
-                                .chars()
-                                .skip(self.cursor)
-                                .skip_while(|c| c.is_alphanumeric())
-                                .skip_while(|c| !c.is_alphanumeric()),
-                        )
+                        .skip(self.cursor)
+                        .skip_while(|c| c.is_alphanumeric())
+                        .skip_while(|c| !c.is_alphanumeric())
                         .collect();
+                    let deleted_count =
+                        self.value.chars().count() - self.cursor - after.len();
+                    let deleted: String = self
+                        .value
+                        .chars()
+                        .skip(self.cursor)
+                        .take(deleted_count)
+                        .collect();
+                    self.add_to_yank(deleted, Side::Right);
+                    self.value =
+                        self.value.chars().take(self.cursor).chain(after).collect();
 
                     Some(StateChanged {
                         value: true,
@@ -327,13 +377,43 @@ impl Input {
             }
 
             DeleteTillEnd => {
+                let deleted: String = self.value.chars().skip(self.cursor).collect();
+                self.add_to_yank(deleted, Side::Right);
                 self.value = self.value.chars().take(self.cursor).collect();
                 Some(StateChanged {
                     value: true,
                     cursor: false,
                 })
             }
-        }
+
+            Yank => {
+                if self.yank.is_empty() {
+                    None
+                } else if self.cursor == self.value.chars().count() {
+                    self.value.push_str(&self.yank);
+                    self.cursor += self.yank.chars().count();
+                    Some(StateChanged {
+                        value: true,
+                        cursor: true,
+                    })
+                } else {
+                    self.value = self
+                        .value
+                        .chars()
+                        .take(self.cursor)
+                        .chain(self.yank.chars())
+                        .chain(self.value.chars().skip(self.cursor))
+                        .collect();
+                    self.cursor += self.yank.chars().count();
+                    Some(StateChanged {
+                        value: true,
+                        cursor: true,
+                    })
+                }
+            }
+        };
+        self.set_last_was_cut(req);
+        result
     }
 
     /// Get a reference to the current value.
@@ -593,5 +673,142 @@ mod tests {
         assert_eq!(input.cursor(), 13);
         assert_eq!(input.visual_cursor(), 23);
         assert_eq!(input.visual_scroll(6), 18);
+    }
+
+    #[test]
+    fn yank_delete_line() {
+        let mut input: Input = TEXT.into();
+        input.handle(InputRequest::DeleteLine);
+        assert_eq!(input.value(), "");
+        assert_eq!(input.cursor(), 0);
+        assert_eq!(input.yank, TEXT);
+
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), TEXT);
+        assert_eq!(input.cursor(), TEXT.chars().count());
+        assert_eq!(input.yank, TEXT);
+    }
+
+    #[test]
+    fn yank_delete_till_end() {
+        let mut input = Input::from(TEXT).with_cursor(6);
+        input.handle(InputRequest::DeleteTillEnd);
+        assert_eq!(input.value(), "first ");
+        assert_eq!(input.cursor(), 6);
+        assert_eq!(input.yank, "second, third.");
+
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "first second, third.");
+        assert_eq!(input.cursor(), TEXT.chars().count());
+        assert_eq!(input.yank, "second, third.");
+    }
+
+    #[test]
+    fn yank_delete_prev_word() {
+        let mut input = Input::from(TEXT).with_cursor(12);
+        input.handle(InputRequest::DeletePrevWord);
+        assert_eq!(input.value(), "first , third.");
+        assert_eq!(input.yank, "second");
+
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "first second, third.");
+        assert_eq!(input.yank, "second");
+    }
+
+    #[test]
+    fn yank_delete_next_word() {
+        let mut input = Input::from(TEXT).with_cursor(6);
+        input.handle(InputRequest::DeleteNextWord);
+        assert_eq!(input.value(), "first third.");
+        assert_eq!(input.yank, "second, ");
+
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "first second, third.");
+        assert_eq!(input.yank, "second, ");
+    }
+
+    #[test]
+    fn yank_empty() {
+        let mut input: Input = TEXT.into();
+        let result = input.handle(InputRequest::Yank);
+        assert_eq!(result, None);
+        assert_eq!(input.value(), TEXT);
+        assert_eq!(input.yank, "");
+    }
+
+    #[test]
+    fn yank_at_middle() {
+        let mut input = Input::from(TEXT).with_cursor(6);
+        input.handle(InputRequest::DeleteTillEnd);
+        assert_eq!(input.value(), "first ");
+        assert_eq!(input.yank, "second, third.");
+        input.handle(InputRequest::GoToStart);
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "second, third.first ");
+        assert_eq!(input.cursor(), 14);
+        assert_eq!(input.yank, "second, third.");
+    }
+
+    #[test]
+    fn yank_consecutive_delete_prev_word() {
+        let mut input = Input::from(TEXT).with_cursor(TEXT.chars().count());
+        input.handle(InputRequest::DeletePrevWord);
+        assert_eq!(input.value(), "first second, ");
+        assert_eq!(input.yank, "third.");
+        input.handle(InputRequest::DeletePrevWord);
+        assert_eq!(input.value(), "first ");
+        assert_eq!(input.yank, "second, third.");
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "first second, third.");
+    }
+
+    #[test]
+    fn yank_consecutive_delete_next_word() {
+        let mut input = Input::from(TEXT).with_cursor(0);
+        input.handle(InputRequest::DeleteNextWord);
+        assert_eq!(input.value(), "second, third.");
+        assert_eq!(input.yank, "first ");
+        input.handle(InputRequest::DeleteNextWord);
+        assert_eq!(input.value(), "third.");
+        assert_eq!(input.yank, "first second, ");
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "first second, third.");
+    }
+
+    #[test]
+    fn yank_insert_breaks_cut_sequence() {
+        let mut input = Input::from(TEXT).with_cursor(TEXT.chars().count());
+        input.handle(InputRequest::DeletePrevWord);
+        assert_eq!(input.yank, "third.");
+        input.handle(InputRequest::InsertChar('x'));
+        input.handle(InputRequest::DeletePrevChar);
+        input.handle(InputRequest::DeletePrevWord);
+        assert_eq!(input.yank, "second, ");
+    }
+
+    #[test]
+    fn yank_mixed_delete_word_and_line() {
+        let mut input = Input::from(TEXT).with_cursor(6);
+        input.handle(InputRequest::DeletePrevWord);
+        assert_eq!(input.value(), "second, third.");
+        assert_eq!(input.yank, "first ");
+        input.handle(InputRequest::DeleteLine);
+        assert_eq!(input.value(), "");
+        assert_eq!(input.yank, "first second, third.");
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "first second, third.");
+    }
+
+    #[test]
+    fn yank_mixed_delete_word_and_line_from_end() {
+        let mut input = Input::from(TEXT).with_cursor(TEXT.chars().count());
+        input.handle(InputRequest::DeletePrevWord);
+        assert_eq!(input.value(), "first second, ");
+        assert_eq!(input.yank, "third.");
+        input.handle(InputRequest::DeleteLine);
+        assert_eq!(input.value(), "");
+        assert_eq!(input.yank, "first second, third.");
+        input.handle(InputRequest::Yank);
+        assert_eq!(input.value(), "first second, third.");
     }
 }
