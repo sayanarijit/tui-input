@@ -59,6 +59,7 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
                 }
                 (Char(c), KeyModifiers::NONE) => Some(InsertChar(c)),
                 (Char(c), KeyModifiers::SHIFT) => Some(InsertChar(c)),
+                (Char(c), modifiers) if modifiers == KeyModifiers::CONTROL | KeyModifiers::ALT => Some(InsertChar(c)),
                 (_, _) => None,
             }
         }
