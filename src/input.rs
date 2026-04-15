@@ -1,5 +1,25 @@
 //! Core logic for handling input.
 //!
+//! # Units
+//!
+//! A string has four different possible notions of length or position:
+//!
+//! - **bytes**:  indices into the UTF-8 encoding, used only internally.
+//! - **codepoints**:  Unicode scalar values (what [`str::chars`] yields).
+//!   This is what [`Input::cursor`] returns and what
+//!   [`InputRequest::SetCursor`] accepts.
+//! - **graphemes**:  user-perceived characters (per `unicode-segmentation`).
+//!   Movement and deletion ([`InputRequest::GoToPrevChar`],
+//!   [`InputRequest::GoToNextChar`], [`InputRequest::DeletePrevChar`],
+//!   [`InputRequest::DeleteNextChar`]) step one *grapheme* at a time,
+//!   which may span multiple codepoints.
+//! - **display columns**:  terminal cell width (per `unicode-width`).
+//!   Returned by [`Input::visual_cursor`] and [`Input::visual_scroll`].
+//!
+//! All four can differ for one string.  For example, `🤦🏼‍♂️` is
+//! actually `"🤦🏼\u{200D}♂\u{FE0F}"`, which is 17 bytes, 5 codepoints,
+//! 1 grapheme, 2 display columns.
+//!
 //! # Example: Without any backend
 //!
 //! ```
@@ -14,6 +34,26 @@
 //! assert_eq!(input.cursor(), 11);
 //! assert_eq!(input.to_string(), "Hello World");
 //! ```
+
+use unicode_segmentation::GraphemeCursor;
+
+fn prev_grapheme(s: &str, byte: usize) -> Option<usize> {
+    GraphemeCursor::new(byte, s.len(), true)
+        .prev_boundary(s, 0)
+        .ok()
+        .flatten()
+}
+
+fn next_grapheme(s: &str, byte: usize) -> Option<usize> {
+    GraphemeCursor::new(byte, s.len(), true)
+        .next_boundary(s, 0)
+        .ok()
+        .flatten()
+}
+
+fn codepoint_to_byte(s: &str, n: usize) -> usize {
+    s.char_indices().nth(n).map_or(s.len(), |(i, _)| i)
+}
 
 enum Side {
     Left,
@@ -68,6 +108,7 @@ pub type InputResponse = Option<StateChanged>;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Input {
     value: String,
+    /// Codepoints preceding the cursor.  See the module-level `Units` section.
     cursor: usize,
     yank: String,
     last_was_cut: bool,
@@ -171,53 +212,35 @@ impl Input {
             }
 
             DeletePrevChar => {
-                if self.cursor == 0 {
-                    None
-                } else {
-                    self.cursor -= 1;
-                    self.value = self
-                        .value
-                        .chars()
-                        .enumerate()
-                        .filter(|(i, _)| i != &self.cursor)
-                        .map(|(_, c)| c)
-                        .collect();
-
-                    Some(StateChanged {
-                        value: true,
-                        cursor: true,
-                    })
-                }
+                let byte = codepoint_to_byte(&self.value, self.cursor);
+                let prev = prev_grapheme(&self.value, byte)?;
+                let removed = self.value[prev..byte].chars().count();
+                self.value.replace_range(prev..byte, "");
+                self.cursor -= removed;
+                Some(StateChanged {
+                    value: true,
+                    cursor: true,
+                })
             }
 
             DeleteNextChar => {
-                if self.cursor == self.value.chars().count() {
-                    None
-                } else {
-                    self.value = self
-                        .value
-                        .chars()
-                        .enumerate()
-                        .filter(|(i, _)| i != &self.cursor)
-                        .map(|(_, c)| c)
-                        .collect();
-                    Some(StateChanged {
-                        value: true,
-                        cursor: false,
-                    })
-                }
+                let byte = codepoint_to_byte(&self.value, self.cursor);
+                let next = next_grapheme(&self.value, byte)?;
+                self.value.replace_range(byte..next, "");
+                Some(StateChanged {
+                    value: true,
+                    cursor: false,
+                })
             }
 
             GoToPrevChar => {
-                if self.cursor == 0 {
-                    None
-                } else {
-                    self.cursor -= 1;
-                    Some(StateChanged {
-                        value: false,
-                        cursor: true,
-                    })
-                }
+                let byte = codepoint_to_byte(&self.value, self.cursor);
+                let prev = prev_grapheme(&self.value, byte)?;
+                self.cursor -= self.value[prev..byte].chars().count();
+                Some(StateChanged {
+                    value: false,
+                    cursor: true,
+                })
             }
 
             GoToPrevWord => {
@@ -240,15 +263,13 @@ impl Input {
             }
 
             GoToNextChar => {
-                if self.cursor == self.value.chars().count() {
-                    None
-                } else {
-                    self.cursor += 1;
-                    Some(StateChanged {
-                        value: false,
-                        cursor: true,
-                    })
-                }
+                let byte = codepoint_to_byte(&self.value, self.cursor);
+                let next = next_grapheme(&self.value, byte)?;
+                self.cursor += self.value[byte..next].chars().count();
+                Some(StateChanged {
+                    value: false,
+                    cursor: true,
+                })
             }
 
             GoToNextWord => {
@@ -421,12 +442,16 @@ impl Input {
         self.value.as_str()
     }
 
-    /// Get the current cursor placement.
+    /// Returns the number of **codepoints** preceding the cursor.  Movement
+    /// and deletion operations step one *grapheme* at a time, so a single
+    /// [`InputRequest::GoToNextChar`] or [`InputRequest::DeletePrevChar`]
+    /// may change this count by more than one.
     pub fn cursor(&self) -> usize {
         self.cursor
     }
 
-    /// Get the current cursor position with account for multispace characters.
+    /// Returns the cursor's position in **display columns** (per
+    /// `unicode-width`).
     pub fn visual_cursor(&self) -> usize {
         if self.cursor == 0 {
             return 0;
@@ -810,5 +835,67 @@ mod tests {
         assert_eq!(input.yank, "first second, third.");
         input.handle(InputRequest::Yank);
         assert_eq!(input.value(), "first second, third.");
+    }
+
+    fn walk_grapheme(value: &str, positions: &[usize]) {
+        let end = *positions.last().unwrap();
+
+        let mut input: Input = value.into();
+        assert_eq!(input.cursor(), end);
+        for &pos in positions.iter().rev().skip(1) {
+            input.handle(InputRequest::GoToPrevChar);
+            assert_eq!(input.cursor(), pos);
+        }
+        for &pos in &positions[1..] {
+            input.handle(InputRequest::GoToNextChar);
+            assert_eq!(input.cursor(), pos);
+        }
+
+        for &pos in positions.iter().rev().skip(1) {
+            input.handle(InputRequest::DeletePrevChar);
+            assert_eq!(input.cursor(), pos);
+        }
+        assert_eq!(input.value(), "");
+
+        let mut input: Input = value.into();
+        input.handle(InputRequest::GoToStart);
+        for _ in 0..positions.len() - 1 {
+            input.handle(InputRequest::DeleteNextChar);
+            assert_eq!(input.cursor(), 0);
+        }
+        assert_eq!(input.value(), "");
+    }
+
+    #[test]
+    fn grapheme_combining_mark() {
+        // á = a + U+0301 = 1 grapheme = 2 codepoints.
+        //
+        // A letter with a combining accent should be treated the same as
+        // if it had been typed in composed form.
+        walk_grapheme("xa\u{0301}y", &[0, 1, 3, 4]);
+    }
+
+    #[test]
+    fn grapheme_facepalm_emoji() {
+        // 🤦🏼‍♂️ = 1 grapheme = 5 codepoints.
+        //
+        // This complex emoji is composed of:
+        //
+        // FACE PALM
+        // EMOJI MODIFIER FITZPATRICK TYPE-3 (aka skin tone)
+        // ZERO WIDTH JOINER (combine this emoji with next emoji(!))
+        // MALE SIGN
+        // VARIATION SELECTOR-16 (interpret previous codepoint as emoji)
+        walk_grapheme("x🤦🏼\u{200D}♂\u{FE0F}y", &[0, 1, 6, 7]);
+    }
+
+    #[test]
+    fn grapheme_flag_sequence() {
+        // 🇺🇸 = 1 flag = 2 regional indicators = 1 grapheme = 2 codepoints.
+        //
+        // Flags are represented by two codepoints from a special range of
+        // 26 codepoints, one for each letter A-Z.  A flag is specified by
+        // writing the ISO country code using those special codepoints.
+        walk_grapheme("x🇺🇸y", &[0, 1, 3, 4]);
     }
 }
