@@ -11,8 +11,10 @@
 //! - **graphemes**:  user-perceived characters (per `unicode-segmentation`).
 //!   Movement and deletion ([`InputRequest::GoToPrevChar`],
 //!   [`InputRequest::GoToNextChar`], [`InputRequest::DeletePrevChar`],
-//!   [`InputRequest::DeleteNextChar`]) step one *grapheme* at a time,
-//!   which may span multiple codepoints.
+//!   [`InputRequest::DeleteNextChar`], [`InputRequest::GoToPrevWord`],
+//!   [`InputRequest::GoToNextWord`], [`InputRequest::DeletePrevWord`],
+//!   [`InputRequest::DeleteNextWord`]) step one *grapheme* or *word*
+//!   at a time, which may span multiple codepoints.
 //! - **display columns**:  terminal cell width (per `unicode-width`).
 //!   Returned by [`Input::visual_cursor`] and [`Input::visual_scroll`].
 //!
@@ -35,7 +37,7 @@
 //! assert_eq!(input.to_string(), "Hello World");
 //! ```
 
-use unicode_segmentation::GraphemeCursor;
+use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
 
 fn prev_grapheme(s: &str, byte: usize) -> Option<usize> {
     GraphemeCursor::new(byte, s.len(), true)
@@ -51,8 +53,40 @@ fn next_grapheme(s: &str, byte: usize) -> Option<usize> {
         .flatten()
 }
 
+fn is_word(s: &str) -> bool {
+    s.chars()
+        .any(|c| !c.is_whitespace() && !c.is_ascii_punctuation())
+}
+
+fn prev_word_byte(s: &str, byte: usize) -> usize {
+    let mut words = s
+        .split_word_bound_indices()
+        .filter(|(i, _)| *i < byte)
+        .rev();
+    while let Some((i, word)) = words.next() {
+        if is_word(word) {
+            return i;
+        }
+    }
+    0
+}
+
+fn next_word_byte(s: &str, byte: usize) -> usize {
+    let mut words = s.split_word_bound_indices().filter(|(i, _)| *i > byte);
+    while let Some((i, word)) = words.next() {
+        if is_word(word) {
+            return i;
+        }
+    }
+    s.len()
+}
+
 fn codepoint_to_byte(s: &str, n: usize) -> usize {
     s.char_indices().nth(n).map_or(s.len(), |(i, _)| i)
+}
+
+fn byte_to_codepoint(s: &str, byte: usize) -> usize {
+    s[..byte].chars().count()
 }
 
 enum Side {
@@ -244,17 +278,12 @@ impl Input {
             }
 
             GoToPrevWord => {
+                let byte = codepoint_to_byte(&self.value, self.cursor);
+                let prev = prev_word_byte(&self.value, byte);
                 if self.cursor == 0 {
                     None
                 } else {
-                    self.cursor = self
-                        .value
-                        .chars()
-                        .rev()
-                        .skip(self.value.chars().count().max(self.cursor) - self.cursor)
-                        .skip_while(|c| !c.is_alphanumeric())
-                        .skip_while(|c| c.is_alphanumeric())
-                        .count();
+                    self.cursor = byte_to_codepoint(&self.value, prev);
                     Some(StateChanged {
                         value: false,
                         cursor: true,
@@ -273,19 +302,12 @@ impl Input {
             }
 
             GoToNextWord => {
+                let byte = codepoint_to_byte(&self.value, self.cursor);
+                let next = next_word_byte(&self.value, byte);
                 if self.cursor == self.value.chars().count() {
                     None
                 } else {
-                    self.cursor = self
-                        .value
-                        .chars()
-                        .enumerate()
-                        .skip(self.cursor)
-                        .skip_while(|(_, c)| c.is_alphanumeric())
-                        .find(|(_, c)| c.is_alphanumeric())
-                        .map(|(i, _)| i)
-                        .unwrap_or_else(|| self.value.chars().count());
-
+                    self.cursor = byte_to_codepoint(&self.value, next);
                     Some(StateChanged {
                         value: false,
                         cursor: true,
@@ -316,25 +338,12 @@ impl Input {
                 if self.cursor == 0 {
                     None
                 } else {
-                    let rev = self
-                        .value
-                        .chars()
-                        .rev()
-                        .skip(self.value.chars().count().max(self.cursor) - self.cursor)
-                        .skip_while(|c| !c.is_alphanumeric())
-                        .skip_while(|c| c.is_alphanumeric())
-                        .collect::<Vec<char>>();
-                    let rev_len = rev.len();
-                    let deleted: String = self
-                        .value
-                        .chars()
-                        .skip(rev_len)
-                        .take(self.cursor - rev_len)
-                        .collect();
+                    let byte = codepoint_to_byte(&self.value, self.cursor);
+                    let prev = prev_word_byte(&self.value, byte);
+                    let deleted = self.value[prev..byte].to_string();
                     self.add_to_yank(deleted, Side::Left);
-                    let remaining = self.value.chars().skip(self.cursor);
-                    self.value = rev.into_iter().rev().chain(remaining).collect();
-                    self.cursor = rev_len;
+                    self.value.replace_range(prev..byte, "");
+                    self.cursor = byte_to_codepoint(&self.value, prev);
                     Some(StateChanged {
                         value: true,
                         cursor: true,
@@ -343,28 +352,14 @@ impl Input {
             }
 
             DeleteNextWord => {
+                let byte = codepoint_to_byte(&self.value, self.cursor);
+                let next = next_word_byte(&self.value, byte);
                 if self.cursor == self.value.chars().count() {
                     None
                 } else {
-                    let after: Vec<_> = self
-                        .value
-                        .chars()
-                        .skip(self.cursor)
-                        .skip_while(|c| c.is_alphanumeric())
-                        .skip_while(|c| !c.is_alphanumeric())
-                        .collect();
-                    let deleted_count =
-                        self.value.chars().count() - self.cursor - after.len();
-                    let deleted: String = self
-                        .value
-                        .chars()
-                        .skip(self.cursor)
-                        .take(deleted_count)
-                        .collect();
+                    let deleted = self.value[byte..next].to_string();
                     self.add_to_yank(deleted, Side::Right);
-                    self.value =
-                        self.value.chars().take(self.cursor).chain(after).collect();
-
+                    self.value.replace_range(byte..next, "");
                     Some(StateChanged {
                         value: true,
                         cursor: false,
@@ -897,5 +892,78 @@ mod tests {
         // 26 codepoints, one for each letter A-Z.  A flag is specified by
         // writing the ISO country code using those special codepoints.
         walk_grapheme("x🇺🇸y", &[0, 1, 3, 4]);
+    }
+
+    #[test]
+    fn word_movement_comprehensive() {
+        let mut input: Input = "Hello, world! 🤦🏼‍♂️ ok".into();
+        input.handle(InputRequest::GoToStart);
+
+        // Next word
+        input.handle(InputRequest::GoToNextWord);
+        assert_eq!(input.value()[codepoint_to_byte(&input.value, input.cursor())..].chars().next(), Some('w'));
+
+        input.handle(InputRequest::GoToNextWord);
+        // "🤦🏼‍♂️" is now considered a word.
+        assert_eq!(
+            input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+                .chars()
+                .next(),
+            Some('🤦')
+        );
+
+        input.handle(InputRequest::GoToNextWord);
+        assert_eq!(
+            input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+                .chars()
+                .next(),
+            Some('o')
+        );
+
+        // Prev word
+        input.handle(InputRequest::GoToPrevWord);
+        assert_eq!(
+            input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+                .chars()
+                .next(),
+            Some('🤦')
+        );
+
+        input.handle(InputRequest::GoToPrevWord);
+        assert_eq!(
+            input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+                .chars()
+                .next(),
+            Some('w')
+        );
+
+        input.handle(InputRequest::GoToPrevWord);
+        assert_eq!(input.value()[codepoint_to_byte(&input.value, input.cursor())..].chars().next(), Some('H'));
+    }
+
+    #[test]
+    fn delete_emoji_word() {
+        let mut input: Input = "abc 🤦🏼‍♂️ def".into();
+        input.handle(InputRequest::GoToEnd);
+        input.handle(InputRequest::DeletePrevWord); // deletes "def"
+        assert_eq!(input.value(), "abc 🤦🏼‍♂️ ");
+        input.handle(InputRequest::DeletePrevWord); // deletes "🤦🏼‍♂️ "
+        assert_eq!(input.value(), "abc ");
+        input.handle(InputRequest::DeletePrevWord); // deletes "abc "
+        assert_eq!(input.value(), "");
+    }
+
+    #[test]
+    fn delete_word_comprehensive() {
+        let mut input: Input = "abc  def, ghi".into();
+        input.handle(InputRequest::GoToStart);
+        input.handle(InputRequest::GoToNextWord); // at 'd'
+        input.handle(InputRequest::DeleteNextWord); // deletes "def, "
+        assert_eq!(input.value(), "abc  ghi");
+        assert_eq!(input.cursor(), 5);
+
+        input.handle(InputRequest::DeletePrevWord); // deletes "abc  "
+        assert_eq!(input.value(), "ghi");
+        assert_eq!(input.cursor(), 0);
     }
 }
