@@ -59,11 +59,11 @@ fn is_word(s: &str) -> bool {
 }
 
 fn prev_word_byte(s: &str, byte: usize) -> usize {
-    let mut words = s
+    let words = s
         .split_word_bound_indices()
         .filter(|(i, _)| *i < byte)
         .rev();
-    while let Some((i, word)) = words.next() {
+    for (i, word) in words {
         if is_word(word) {
             return i;
         }
@@ -72,8 +72,8 @@ fn prev_word_byte(s: &str, byte: usize) -> usize {
 }
 
 fn next_word_byte(s: &str, byte: usize) -> usize {
-    let mut words = s.split_word_bound_indices().filter(|(i, _)| *i > byte);
-    while let Some((i, word)) = words.next() {
+    let words = s.split_word_bound_indices().filter(|(i, _)| *i > byte);
+    for (i, word) in words {
         if is_word(word) {
             return i;
         }
