@@ -190,12 +190,12 @@ fn yank_delete_line() {
     input.handle(InputRequest::DeleteLine);
     assert_eq!(input.value(), "");
     assert_eq!(input.cursor(), 0);
-    assert_eq!(input.yank, TEXT);
+    assert_eq!(input.yank.as_str(), TEXT);
 
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), TEXT);
     assert_eq!(input.cursor(), TEXT.chars().count());
-    assert_eq!(input.yank, TEXT);
+    assert_eq!(input.yank.as_str(), TEXT);
 }
 
 #[test]
@@ -204,12 +204,12 @@ fn yank_delete_till_end() {
     input.handle(InputRequest::DeleteTillEnd);
     assert_eq!(input.value(), "first ");
     assert_eq!(input.cursor(), 6);
-    assert_eq!(input.yank, "second, third.");
+    assert_eq!(input.yank.as_str(), "second, third.");
 
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "first second, third.");
     assert_eq!(input.cursor(), TEXT.chars().count());
-    assert_eq!(input.yank, "second, third.");
+    assert_eq!(input.yank.as_str(), "second, third.");
 }
 
 #[test]
@@ -217,11 +217,11 @@ fn yank_delete_prev_word() {
     let mut input = Input::from(TEXT).with_cursor(12);
     input.handle(InputRequest::DeletePrevWord);
     assert_eq!(input.value(), "first , third.");
-    assert_eq!(input.yank, "second");
+    assert_eq!(input.yank.as_str(), "second");
 
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "first second, third.");
-    assert_eq!(input.yank, "second");
+    assert_eq!(input.yank.as_str(), "second");
 }
 
 #[test]
@@ -229,11 +229,11 @@ fn yank_delete_next_word() {
     let mut input = Input::from(TEXT).with_cursor(6);
     input.handle(InputRequest::DeleteNextWord);
     assert_eq!(input.value(), "first third.");
-    assert_eq!(input.yank, "second, ");
+    assert_eq!(input.yank.as_str(), "second, ");
 
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "first second, third.");
-    assert_eq!(input.yank, "second, ");
+    assert_eq!(input.yank.as_str(), "second, ");
 }
 
 #[test]
@@ -242,7 +242,7 @@ fn yank_empty() {
     let result = input.handle(InputRequest::Yank);
     assert_eq!(result, None);
     assert_eq!(input.value(), TEXT);
-    assert_eq!(input.yank, "");
+    assert_eq!(input.yank.as_str(), "");
 }
 
 #[test]
@@ -250,12 +250,12 @@ fn yank_at_middle() {
     let mut input = Input::from(TEXT).with_cursor(6);
     input.handle(InputRequest::DeleteTillEnd);
     assert_eq!(input.value(), "first ");
-    assert_eq!(input.yank, "second, third.");
+    assert_eq!(input.yank.as_str(), "second, third.");
     input.handle(InputRequest::GoToStart);
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "second, third.first ");
     assert_eq!(input.cursor(), 14);
-    assert_eq!(input.yank, "second, third.");
+    assert_eq!(input.yank.as_str(), "second, third.");
 }
 
 #[test]
@@ -263,10 +263,10 @@ fn yank_consecutive_delete_prev_word() {
     let mut input = Input::from(TEXT).with_cursor(TEXT.chars().count());
     input.handle(InputRequest::DeletePrevWord);
     assert_eq!(input.value(), "first second, ");
-    assert_eq!(input.yank, "third.");
+    assert_eq!(input.yank.as_str(), "third.");
     input.handle(InputRequest::DeletePrevWord);
     assert_eq!(input.value(), "first ");
-    assert_eq!(input.yank, "second, third.");
+    assert_eq!(input.yank.as_str(), "second, third.");
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "first second, third.");
 }
@@ -276,10 +276,10 @@ fn yank_consecutive_delete_next_word() {
     let mut input = Input::from(TEXT).with_cursor(0);
     input.handle(InputRequest::DeleteNextWord);
     assert_eq!(input.value(), "second, third.");
-    assert_eq!(input.yank, "first ");
+    assert_eq!(input.yank.as_str(), "first ");
     input.handle(InputRequest::DeleteNextWord);
     assert_eq!(input.value(), "third.");
-    assert_eq!(input.yank, "first second, ");
+    assert_eq!(input.yank.as_str(), "first second, ");
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "first second, third.");
 }
@@ -288,11 +288,11 @@ fn yank_consecutive_delete_next_word() {
 fn yank_insert_breaks_cut_sequence() {
     let mut input = Input::from(TEXT).with_cursor(TEXT.chars().count());
     input.handle(InputRequest::DeletePrevWord);
-    assert_eq!(input.yank, "third.");
+    assert_eq!(input.yank.as_str(), "third.");
     input.handle(InputRequest::InsertChar('x'));
     input.handle(InputRequest::DeletePrevChar);
     input.handle(InputRequest::DeletePrevWord);
-    assert_eq!(input.yank, "second, ");
+    assert_eq!(input.yank.as_str(), "second, ");
 }
 
 #[test]
@@ -300,10 +300,10 @@ fn yank_mixed_delete_word_and_line() {
     let mut input = Input::from(TEXT).with_cursor(6);
     input.handle(InputRequest::DeletePrevWord);
     assert_eq!(input.value(), "second, third.");
-    assert_eq!(input.yank, "first ");
+    assert_eq!(input.yank.as_str(), "first ");
     input.handle(InputRequest::DeleteLine);
     assert_eq!(input.value(), "");
-    assert_eq!(input.yank, "first second, third.");
+    assert_eq!(input.yank.as_str(), "first second, third.");
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "first second, third.");
 }
@@ -313,10 +313,10 @@ fn yank_mixed_delete_word_and_line_from_end() {
     let mut input = Input::from(TEXT).with_cursor(TEXT.chars().count());
     input.handle(InputRequest::DeletePrevWord);
     assert_eq!(input.value(), "first second, ");
-    assert_eq!(input.yank, "third.");
+    assert_eq!(input.yank.as_str(), "third.");
     input.handle(InputRequest::DeleteLine);
     assert_eq!(input.value(), "");
-    assert_eq!(input.yank, "first second, third.");
+    assert_eq!(input.yank.as_str(), "first second, third.");
     input.handle(InputRequest::Yank);
     assert_eq!(input.value(), "first second, third.");
 }

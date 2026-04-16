@@ -148,7 +148,7 @@ pub struct Input {
     value: Value,
     /// Codepoints preceding the cursor.  See the module-level `Units` section.
     cursor: usize,
-    yank: String,
+    yank: Value,
     last_was_cut: bool,
 }
 
@@ -161,7 +161,7 @@ impl Input {
         Self {
             value,
             cursor,
-            yank: String::new(),
+            yank: Value::default(),
             last_was_cut: false,
         }
     }
@@ -197,11 +197,11 @@ impl Input {
     fn add_to_yank(&mut self, deleted: String, side: Side) {
         if self.last_was_cut {
             match side {
-                Side::Left => self.yank.insert_str(0, &deleted),
-                Side::Right => self.yank.push_str(&deleted),
+                Side::Left => self.yank.edit().insert_str(0, &deleted),
+                Side::Right => self.yank.edit().push_str(&deleted),
             }
         } else {
-            self.yank = deleted;
+            self.yank = Value::new(deleted);
         }
     }
 
@@ -406,12 +406,12 @@ impl Input {
             }
 
             Yank => {
-                if self.yank.is_empty() {
+                if self.yank.as_str().is_empty() {
                     None
                 } else {
                     let byte = codepoint_to_byte(self.value.as_str(), self.cursor);
-                    self.value.edit().insert_str(byte, &self.yank);
-                    self.cursor += self.yank.chars().count();
+                    self.value.edit().insert_str(byte, self.yank.as_str());
+                    self.cursor += self.yank.chars();
                     Some(StateChanged {
                         value: true,
                         cursor: true,
