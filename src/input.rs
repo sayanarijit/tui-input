@@ -37,7 +37,11 @@
 //! assert_eq!(input.to_string(), "Hello World");
 //! ```
 
+mod value;
+
 use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
+
+use self::value::Value;
 
 fn prev_grapheme(s: &str, byte: usize) -> Option<usize> {
     GraphemeCursor::new(byte, s.len(), true)
@@ -141,7 +145,7 @@ pub type InputResponse = Option<StateChanged>;
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Input {
-    value: String,
+    value: Value,
     /// Codepoints preceding the cursor.  See the module-level `Units` section.
     cursor: usize,
     yank: String,
@@ -152,10 +156,11 @@ impl Input {
     /// Initialize a new instance with a given value
     /// Cursor will be set to the given value's length.
     pub fn new(value: String) -> Self {
-        let len = value.chars().count();
+        let value = Value::new(value);
+        let cursor = value.chars();
         Self {
             value,
-            cursor: len,
+            cursor,
             yank: String::new(),
             last_was_cut: false,
         }
@@ -164,15 +169,15 @@ impl Input {
     /// Set the value manually.
     /// Cursor will be set to the given value's length.
     pub fn with_value(mut self, value: String) -> Self {
-        self.cursor = value.chars().count();
-        self.value = value;
+        self.value = Value::new(value);
+        self.cursor = self.value.chars();
         self
     }
 
     /// Set the cursor manually.
     /// If the input is larger than the value length, it'll be auto adjusted.
     pub fn with_cursor(mut self, cursor: usize) -> Self {
-        self.cursor = cursor.min(self.value.chars().count());
+        self.cursor = cursor.min(self.value.chars());
         self
     }
 
@@ -184,7 +189,7 @@ impl Input {
 
     // Reset the cursor and value to default, returning the previous value
     pub fn value_and_reset(&mut self) -> String {
-        let val = self.value.clone();
+        let val = self.value.as_str().to_owned();
         self.reset();
         val
     }
@@ -213,7 +218,7 @@ impl Input {
         use InputRequest::*;
         let result = match req {
             SetCursor(pos) => {
-                let pos = pos.min(self.value.chars().count());
+                let pos = pos.min(self.value.chars());
                 if self.cursor == pos {
                     None
                 } else {
@@ -225,19 +230,8 @@ impl Input {
                 }
             }
             InsertChar(c) => {
-                if self.cursor == self.value.chars().count() {
-                    self.value.push(c);
-                } else {
-                    self.value = self
-                        .value
-                        .chars()
-                        .take(self.cursor)
-                        .chain(
-                            std::iter::once(c)
-                                .chain(self.value.chars().skip(self.cursor)),
-                        )
-                        .collect();
-                }
+                let byte = codepoint_to_byte(self.value.as_str(), self.cursor);
+                self.value.edit().insert(byte, c);
                 self.cursor += 1;
                 Some(StateChanged {
                     value: true,
@@ -246,10 +240,11 @@ impl Input {
             }
 
             DeletePrevChar => {
-                let byte = codepoint_to_byte(&self.value, self.cursor);
-                let prev = prev_grapheme(&self.value, byte)?;
-                let removed = self.value[prev..byte].chars().count();
-                self.value.replace_range(prev..byte, "");
+                let s = self.value.as_str();
+                let byte = codepoint_to_byte(s, self.cursor);
+                let prev = prev_grapheme(s, byte)?;
+                let removed = s[prev..byte].chars().count();
+                self.value.edit().replace_range(prev..byte, "");
                 self.cursor -= removed;
                 Some(StateChanged {
                     value: true,
@@ -258,9 +253,10 @@ impl Input {
             }
 
             DeleteNextChar => {
-                let byte = codepoint_to_byte(&self.value, self.cursor);
-                let next = next_grapheme(&self.value, byte)?;
-                self.value.replace_range(byte..next, "");
+                let s = self.value.as_str();
+                let byte = codepoint_to_byte(s, self.cursor);
+                let next = next_grapheme(s, byte)?;
+                self.value.edit().replace_range(byte..next, "");
                 Some(StateChanged {
                     value: true,
                     cursor: false,
@@ -268,9 +264,10 @@ impl Input {
             }
 
             GoToPrevChar => {
-                let byte = codepoint_to_byte(&self.value, self.cursor);
-                let prev = prev_grapheme(&self.value, byte)?;
-                self.cursor -= self.value[prev..byte].chars().count();
+                let s = self.value.as_str();
+                let byte = codepoint_to_byte(s, self.cursor);
+                let prev = prev_grapheme(s, byte)?;
+                self.cursor -= s[prev..byte].chars().count();
                 Some(StateChanged {
                     value: false,
                     cursor: true,
@@ -278,12 +275,13 @@ impl Input {
             }
 
             GoToPrevWord => {
-                let byte = codepoint_to_byte(&self.value, self.cursor);
-                let prev = prev_word_byte(&self.value, byte);
+                let s = self.value.as_str();
+                let byte = codepoint_to_byte(s, self.cursor);
+                let prev = prev_word_byte(s, byte);
                 if self.cursor == 0 {
                     None
                 } else {
-                    self.cursor = byte_to_codepoint(&self.value, prev);
+                    self.cursor = byte_to_codepoint(s, prev);
                     Some(StateChanged {
                         value: false,
                         cursor: true,
@@ -292,9 +290,10 @@ impl Input {
             }
 
             GoToNextChar => {
-                let byte = codepoint_to_byte(&self.value, self.cursor);
-                let next = next_grapheme(&self.value, byte)?;
-                self.cursor += self.value[byte..next].chars().count();
+                let s = self.value.as_str();
+                let byte = codepoint_to_byte(s, self.cursor);
+                let next = next_grapheme(s, byte)?;
+                self.cursor += s[byte..next].chars().count();
                 Some(StateChanged {
                     value: false,
                     cursor: true,
@@ -302,12 +301,13 @@ impl Input {
             }
 
             GoToNextWord => {
-                let byte = codepoint_to_byte(&self.value, self.cursor);
-                let next = next_word_byte(&self.value, byte);
-                if self.cursor == self.value.chars().count() {
+                let s = self.value.as_str();
+                let byte = codepoint_to_byte(s, self.cursor);
+                let next = next_word_byte(s, byte);
+                if self.cursor == self.value.chars() {
                     None
                 } else {
-                    self.cursor = byte_to_codepoint(&self.value, next);
+                    self.cursor = byte_to_codepoint(s, next);
                     Some(StateChanged {
                         value: false,
                         cursor: true,
@@ -316,16 +316,16 @@ impl Input {
             }
 
             DeleteLine => {
-                if self.value.is_empty() {
+                if self.value.as_str().is_empty() {
                     None
                 } else {
-                    let side = if self.cursor == self.value.chars().count() {
+                    let side = if self.cursor == self.value.chars() {
                         Side::Left
                     } else {
                         Side::Right
                     };
-                    self.add_to_yank(self.value.clone(), side);
-                    self.value = "".into();
+                    self.add_to_yank(self.value.as_str().to_owned(), side);
+                    self.value.edit().clear();
                     self.cursor = 0;
                     Some(StateChanged {
                         value: true,
@@ -338,12 +338,13 @@ impl Input {
                 if self.cursor == 0 {
                     None
                 } else {
-                    let byte = codepoint_to_byte(&self.value, self.cursor);
-                    let prev = prev_word_byte(&self.value, byte);
-                    let deleted = self.value[prev..byte].to_string();
+                    let s = self.value.as_str();
+                    let byte = codepoint_to_byte(s, self.cursor);
+                    let prev = prev_word_byte(s, byte);
+                    let deleted = s[prev..byte].to_string();
                     self.add_to_yank(deleted, Side::Left);
-                    self.value.replace_range(prev..byte, "");
-                    self.cursor = byte_to_codepoint(&self.value, prev);
+                    self.value.edit().replace_range(prev..byte, "");
+                    self.cursor = byte_to_codepoint(self.value.as_str(), prev);
                     Some(StateChanged {
                         value: true,
                         cursor: true,
@@ -352,14 +353,15 @@ impl Input {
             }
 
             DeleteNextWord => {
-                let byte = codepoint_to_byte(&self.value, self.cursor);
-                let next = next_word_byte(&self.value, byte);
-                if self.cursor == self.value.chars().count() {
+                let s = self.value.as_str();
+                let byte = codepoint_to_byte(s, self.cursor);
+                let next = next_word_byte(s, byte);
+                if self.cursor == self.value.chars() {
                     None
                 } else {
-                    let deleted = self.value[byte..next].to_string();
+                    let deleted = s[byte..next].to_string();
                     self.add_to_yank(deleted, Side::Right);
-                    self.value.replace_range(byte..next, "");
+                    self.value.edit().replace_range(byte..next, "");
                     Some(StateChanged {
                         value: true,
                         cursor: false,
@@ -380,7 +382,7 @@ impl Input {
             }
 
             GoToEnd => {
-                let count = self.value.chars().count();
+                let count = self.value.chars();
                 if self.cursor == count {
                     None
                 } else {
@@ -393,9 +395,10 @@ impl Input {
             }
 
             DeleteTillEnd => {
-                let deleted: String = self.value.chars().skip(self.cursor).collect();
+                let byte = codepoint_to_byte(self.value.as_str(), self.cursor);
+                let deleted = self.value.as_str()[byte..].to_string();
                 self.add_to_yank(deleted, Side::Right);
-                self.value = self.value.chars().take(self.cursor).collect();
+                self.value.edit().truncate(byte);
                 Some(StateChanged {
                     value: true,
                     cursor: false,
@@ -405,21 +408,9 @@ impl Input {
             Yank => {
                 if self.yank.is_empty() {
                     None
-                } else if self.cursor == self.value.chars().count() {
-                    self.value.push_str(&self.yank);
-                    self.cursor += self.yank.chars().count();
-                    Some(StateChanged {
-                        value: true,
-                        cursor: true,
-                    })
                 } else {
-                    self.value = self
-                        .value
-                        .chars()
-                        .take(self.cursor)
-                        .chain(self.yank.chars())
-                        .chain(self.value.chars().skip(self.cursor))
-                        .collect();
+                    let byte = codepoint_to_byte(self.value.as_str(), self.cursor);
+                    self.value.edit().insert_str(byte, &self.yank);
                     self.cursor += self.yank.chars().count();
                     Some(StateChanged {
                         value: true,
@@ -452,14 +443,13 @@ impl Input {
             return 0;
         }
 
+        let s = self.value.as_str();
         // Safe, because the end index will always be within bounds
         unicode_width::UnicodeWidthStr::width(unsafe {
-            self.value.get_unchecked(
-                0..self
-                    .value
-                    .char_indices()
+            s.get_unchecked(
+                0..s.char_indices()
                     .nth(self.cursor)
-                    .map_or_else(|| self.value.len(), |(index, _)| index),
+                    .map_or_else(|| s.len(), |(index, _)| index),
             )
         })
     }
@@ -484,7 +474,7 @@ impl Input {
 
 impl From<Input> for String {
     fn from(input: Input) -> Self {
-        input.value
+        input.value.into()
     }
 }
 
@@ -502,7 +492,7 @@ impl From<&str> for Input {
 
 impl std::fmt::Display for Input {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.value.fmt(f)
+        self.value.as_str().fmt(f)
     }
 }
 

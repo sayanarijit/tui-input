@@ -391,7 +391,7 @@ fn word_movement_comprehensive() {
     // Next word
     input.handle(InputRequest::GoToNextWord);
     assert_eq!(
-        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+        input.value()[codepoint_to_byte(input.value(), input.cursor())..]
             .chars()
             .next(),
         Some('w')
@@ -400,7 +400,7 @@ fn word_movement_comprehensive() {
     input.handle(InputRequest::GoToNextWord);
     // "🤦🏼‍♂️" is now considered a word.
     assert_eq!(
-        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+        input.value()[codepoint_to_byte(input.value(), input.cursor())..]
             .chars()
             .next(),
         Some('🤦')
@@ -408,7 +408,7 @@ fn word_movement_comprehensive() {
 
     input.handle(InputRequest::GoToNextWord);
     assert_eq!(
-        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+        input.value()[codepoint_to_byte(input.value(), input.cursor())..]
             .chars()
             .next(),
         Some('o')
@@ -417,7 +417,7 @@ fn word_movement_comprehensive() {
     // Prev word
     input.handle(InputRequest::GoToPrevWord);
     assert_eq!(
-        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+        input.value()[codepoint_to_byte(input.value(), input.cursor())..]
             .chars()
             .next(),
         Some('🤦')
@@ -425,7 +425,7 @@ fn word_movement_comprehensive() {
 
     input.handle(InputRequest::GoToPrevWord);
     assert_eq!(
-        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+        input.value()[codepoint_to_byte(input.value(), input.cursor())..]
             .chars()
             .next(),
         Some('w')
@@ -433,7 +433,7 @@ fn word_movement_comprehensive() {
 
     input.handle(InputRequest::GoToPrevWord);
     assert_eq!(
-        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+        input.value()[codepoint_to_byte(input.value(), input.cursor())..]
             .chars()
             .next(),
         Some('H')
