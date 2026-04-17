@@ -1,4 +1,3 @@
-
 const TEXT: &str = "first second, third.";
 
 use super::*;
@@ -391,7 +390,12 @@ fn word_movement_comprehensive() {
 
     // Next word
     input.handle(InputRequest::GoToNextWord);
-    assert_eq!(input.value()[codepoint_to_byte(&input.value, input.cursor())..].chars().next(), Some('w'));
+    assert_eq!(
+        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+            .chars()
+            .next(),
+        Some('w')
+    );
 
     input.handle(InputRequest::GoToNextWord);
     // "🤦🏼‍♂️" is now considered a word.
@@ -428,7 +432,12 @@ fn word_movement_comprehensive() {
     );
 
     input.handle(InputRequest::GoToPrevWord);
-    assert_eq!(input.value()[codepoint_to_byte(&input.value, input.cursor())..].chars().next(), Some('H'));
+    assert_eq!(
+        input.value()[codepoint_to_byte(&input.value, input.cursor())..]
+            .chars()
+            .next(),
+        Some('H')
+    );
 }
 
 #[test]
