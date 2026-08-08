@@ -118,6 +118,7 @@ pub enum InputRequest {
     DeleteNextWord,
     DeleteLine,
     DeleteTillEnd,
+    DeleteTillStart,
     Yank,
 }
 
@@ -403,6 +404,21 @@ impl Input {
                     value: true,
                     cursor: false,
                 })
+            }
+
+            DeleteTillStart => {
+                if self.cursor == 0 {
+                    None
+                } else {
+                    let byte = codepoint_to_byte(self.value.as_str(), self.cursor);
+                    let deleted = self.value.edit().drain(..byte).collect();
+                    self.add_to_yank(deleted, Side::Left);
+                    self.cursor = 0;
+                    Some(StateChanged {
+                        value: true,
+                        cursor: true,
+                    })
+                }
             }
 
             Yank => {
