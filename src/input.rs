@@ -118,7 +118,7 @@ pub enum InputRequest {
     DeleteNextWord,
     DeleteLine,
     DeleteTillEnd,
-    DeleteTillStart,
+    DeleteFromStart,
     Yank,
 }
 
@@ -406,7 +406,7 @@ impl Input {
                 })
             }
 
-            DeleteTillStart => {
+            DeleteFromStart => {
                 if self.cursor == 0 {
                     None
                 } else {
