@@ -213,6 +213,20 @@ fn yank_delete_till_end() {
 }
 
 #[test]
+fn yank_delete_from_start() {
+    let mut input = Input::from(TEXT).with_cursor(14);
+    input.handle(InputRequest::DeleteFromStart);
+    assert_eq!(input.value(), "third.");
+    assert_eq!(input.cursor(), 0);
+    assert_eq!(input.yank.as_str(), "first second, ");
+
+    input.handle(InputRequest::Yank);
+    assert_eq!(input.value(), "first second, third.");
+    assert_eq!(input.cursor(), 14);
+    assert_eq!(input.yank.as_str(), "first second, ");
+}
+
+#[test]
 fn yank_delete_prev_word() {
     let mut input = Input::from(TEXT).with_cursor(12);
     input.handle(InputRequest::DeletePrevWord);
