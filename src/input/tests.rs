@@ -213,7 +213,7 @@ fn yank_delete_till_end() {
 }
 
 #[test]
-fn yank_delete_till_start() {
+fn yank_delete_from_start() {
     let mut input = Input::from(TEXT).with_cursor(14);
     input.handle(InputRequest::DeleteFromStart);
     assert_eq!(input.value(), "third.");
