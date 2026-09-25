@@ -40,6 +40,7 @@
 mod value;
 
 use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
+use unicode_width::UnicodeWidthStr;
 
 use self::value::Value;
 
@@ -83,6 +84,12 @@ fn next_word_byte(s: &str, byte: usize) -> usize {
         }
     }
     s.len()
+}
+
+/// Display width of each grapheme.  Width of a sequence like ❤️‍🔥 is not
+/// the sum of its codepoints' widths, so whole graphemes are measured.
+pub(crate) fn widths(s: &str) -> impl Iterator<Item = usize> + '_ {
+    s.graphemes(true).map(UnicodeWidthStr::width)
 }
 
 fn codepoint_to_byte(s: &str, n: usize) -> usize {
@@ -455,32 +462,19 @@ impl Input {
     /// Returns the cursor's position in **display columns** (per
     /// `unicode-width`).
     pub fn visual_cursor(&self) -> usize {
-        if self.cursor == 0 {
-            return 0;
-        }
-
         let s = self.value.as_str();
-        // Safe, because the end index will always be within bounds
-        unicode_width::UnicodeWidthStr::width(unsafe {
-            s.get_unchecked(
-                0..s.char_indices()
-                    .nth(self.cursor)
-                    .map_or_else(|| s.len(), |(index, _)| index),
-            )
-        })
+        widths(&s[..codepoint_to_byte(s, self.cursor)]).sum()
     }
 
-    /// Get the scroll position with account for multispace characters.
+    /// Get the scroll position, accounting for wide graphemes.
     pub fn visual_scroll(&self, width: usize) -> usize {
         let scroll = (self.visual_cursor()).max(width) - width;
         let mut uscroll = 0;
-        let mut chars = self.value().chars();
+        let mut widths = widths(self.value());
 
         while uscroll < scroll {
-            match chars.next() {
-                Some(c) => {
-                    uscroll += unicode_width::UnicodeWidthChar::width(c).unwrap_or(0);
-                }
+            match widths.next() {
+                Some(w) => uscroll += w,
                 None => break,
             }
         }

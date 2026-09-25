@@ -397,6 +397,49 @@ fn grapheme_flag_sequence() {
     walk_grapheme("x🇺🇸y", &[0, 1, 3, 4]);
 }
 
+/// Checks the display columns of `x{emoji}y` for an emoji two columns wide.
+fn check_wide_emoji(emoji: &str) {
+    let value = format!("x{emoji}y");
+    let len = emoji.chars().count();
+    walk_grapheme(&value, &[0, 1, len + 1, len + 2]);
+
+    let mut input: Input = value.as_str().into();
+    input.handle(InputRequest::GoToStart);
+    for col in [0, 1, 3, 4] {
+        assert_eq!(input.visual_cursor(), col);
+        input.handle(InputRequest::GoToNextChar);
+    }
+
+    // Scrolling must not stop in the middle of the emoji.
+    input.handle(InputRequest::GoToEnd);
+    for (width, scroll) in [(1, 3), (2, 3), (3, 1), (4, 0)] {
+        assert_eq!(input.visual_scroll(width), scroll, "width {width}");
+    }
+}
+
+#[test]
+fn heart_on_fire() {
+    // ❤️‍🔥 = HEAVY BLACK HEART + VS16 + ZWJ + FIRE = 4 codepoints.
+    //
+    // Per-codepoint widths sum to 3, overshooting the true width of 2.
+    check_wide_emoji("❤\u{FE0F}\u{200D}🔥");
+}
+
+#[test]
+fn eye_in_speech_bubble() {
+    // 👁️‍🗨️ = EYE + VS16 + ZWJ + LEFT SPEECH BUBBLE + VS16 = 5 codepoints.
+    //
+    // Per-codepoint widths sum to 2, but the first codepoint alone is 1
+    // column, so summing can stop in the middle of the grapheme.
+    check_wide_emoji("👁\u{FE0F}\u{200D}🗨\u{FE0F}");
+}
+
+#[test]
+fn thumbs_up_skin_tone() {
+    // 👍🏻 = THUMBS UP + FITZPATRICK TYPE-1-2 = 2 codepoints.
+    check_wide_emoji("👍🏻");
+}
+
 #[test]
 fn word_movement_comprehensive() {
     let mut input: Input = "Hello, world! 🤦🏼‍♂️ ok".into();
