@@ -92,7 +92,7 @@ pub(crate) fn widths(s: &str) -> impl Iterator<Item = usize> + '_ {
     s.graphemes(true).map(UnicodeWidthStr::width)
 }
 
-fn codepoint_to_byte(s: &str, n: usize) -> usize {
+pub(crate) fn codepoint_to_byte(s: &str, n: usize) -> usize {
     s.char_indices().nth(n).map_or(s.len(), |(i, _)| i)
 }
 

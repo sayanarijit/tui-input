@@ -1,6 +1,7 @@
 #[cfg(feature = "ratatui-termion")]
 use ratatui::termion;
 
+use super::layout::layout;
 use crate::input::InputRequest;
 use crate::Input;
 use crate::StateChanged;
@@ -40,34 +41,16 @@ pub fn write<W: Write>(
     (x, y): (u16, u16),
     width: u16,
 ) -> Result<()> {
-    write!(stdout, "{}{}", Goto(x + 1, y + 1), NoInvert)?;
-
-    let val_width = width.max(1) as usize - 1;
-    let len = value.chars().count();
-    let start = (len.max(val_width) - val_width).min(cursor);
-    let mut chars = value.chars().skip(start);
-    let mut i = start;
-
-    // Chars before cursor
-    while i < cursor {
-        i += 1;
-        let c = chars.next().unwrap_or(' ');
-        write!(stdout, "{}", c)?;
-    }
-
-    // Cursor
-    i += 1;
-    let c = chars.next().unwrap_or(' ');
-    write!(stdout, "{}{}{}", Invert, c, NoInvert,)?;
-
-    // Chars after the cursor
-    while i <= start + val_width {
-        i += 1;
-        let c = chars.next().unwrap_or(' ');
-        write!(stdout, "{}", c)?;
-    }
-
-    Ok(())
+    let l = layout(value, cursor, width);
+    let pad = l.padding();
+    write!(
+        stdout,
+        "{}{NoInvert}{}{Invert}{}{NoInvert}{}{pad}",
+        Goto(x + 1, y + 1),
+        l.before,
+        l.cursor,
+        l.after
+    )
 }
 
 /// Import this trait to implement `Input::handle_event()` for termion.

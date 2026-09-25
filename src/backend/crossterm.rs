@@ -1,6 +1,7 @@
 #[cfg(feature = "ratatui-crossterm")]
 use ratatui::crossterm;
 
+use super::layout::layout;
 use crate::{Input, InputRequest, StateChanged};
 use crossterm::event::{
     Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
@@ -79,39 +80,19 @@ pub fn write<W: Write>(
     (x, y): (u16, u16),
     width: u16,
 ) -> Result<()> {
-    queue!(stdout, MoveTo(x, y), SetAttribute(CAttribute::NoReverse))?;
-
-    let val_width = width.max(1) as usize - 1;
-    let len = value.chars().count();
-    let start = (len.max(val_width) - val_width).min(cursor);
-    let mut chars = value.chars().skip(start);
-    let mut i = start;
-
-    // Chars before cursor
-    while i < cursor {
-        i += 1;
-        let c = chars.next().unwrap_or(' ');
-        queue!(stdout, Print(c))?;
-    }
-
-    // Cursor
-    i += 1;
-    let c = chars.next().unwrap_or(' ');
+    let l = layout(value, cursor, width);
+    let pad = l.padding();
     queue!(
         stdout,
+        MoveTo(x, y),
+        SetAttribute(CAttribute::NoReverse),
+        Print(l.before),
         SetAttribute(CAttribute::Reverse),
-        Print(c),
-        SetAttribute(CAttribute::NoReverse)
-    )?;
-
-    // Chars after the cursor
-    while i <= start + val_width {
-        i += 1;
-        let c = chars.next().unwrap_or(' ');
-        queue!(stdout, Print(c))?;
-    }
-
-    Ok(())
+        Print(l.cursor),
+        SetAttribute(CAttribute::NoReverse),
+        Print(l.after),
+        Print(pad)
+    )
 }
 
 /// Import this trait to implement `Input::handle_event()` for crossterm.
